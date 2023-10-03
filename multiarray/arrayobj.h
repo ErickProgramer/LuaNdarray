@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <lua.h>
+#include <lauxlib.h>
+
 /* ndarray struct */
 typedef struct Ndarray_fields{
     /* data of the ndarray */
@@ -19,8 +22,7 @@ typedef struct Ndarray_fields{
     size_t size;
 } Ndarray;
 
-Ndarray *newcNdarray(double*, size_t*, size_t, int);
+int l_newNdarray(lua_State*);
 
-#define newNdarray(data, dims, nd) newcNdarray(data, dims, nd, 1)
 
 #endif /* NUMLUA_MULTIARRAY_ARRAYOBJ_H_ */
