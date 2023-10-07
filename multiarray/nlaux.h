@@ -5,5 +5,6 @@
 #include <stdlib.h>
 
 void nL_repprint(const char*, size_t);
+size_t nL_getmaxalign(double*, size_t);
 
 #endif /* NUMLUA_MULTIARRAY_NLAUX_H_ */
