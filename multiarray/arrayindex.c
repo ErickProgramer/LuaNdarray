@@ -39,8 +39,8 @@ int l_arrayindex(lua_State *L){
     Ndarray *arr = (Ndarray*)luaL_checkudata(L, 1, "ndarray");
     int idx = luaL_checkinteger(L, 2) - 1;
 
-    Ndarray *res = (Ndarray*)lua_newuserdata(L, sizeof(Ndarray));
-    res = c_arrayindex(arr, idx);
+    Ndarray *res = c_arrayindex(arr, idx);
+    lua_pushlightuserdata(L, (void*)res);
 
     luaL_getmetatable(L, "ndarray");
     lua_setmetatable(L, -2);
