@@ -45,6 +45,5 @@ int l_arrayindex(lua_State *L){
     luaL_getmetatable(L, "ndarray");
     lua_setmetatable(L, -2);
 
-
     return 1;
 }

@@ -1,10 +1,6 @@
 #ifndef NUMLUA_MULTIARRAY_ARRAYINIS_H_
 #define NUMLUA_MULTIARRAY_ARRAYINIS_H_
 
-/*
- * arrayinis.h: this file have the declarations of Ndarray initializers functions
- */
-
 #include "arrayobj.h"
 
 #include <lua.h>
