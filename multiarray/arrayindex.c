@@ -42,5 +42,9 @@ int l_arrayindex(lua_State *L){
     Ndarray *res = (Ndarray*)lua_newuserdata(L, sizeof(Ndarray));
     res = c_arrayindex(arr, idx);
 
+    luaL_getmetatable(L, "ndarray");
+    lua_setmetatable(L, -2);
+
+
     return 1;
 }
