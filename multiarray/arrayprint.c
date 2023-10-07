@@ -5,12 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// prints an Ndarray
 void c_arrayprint(Ndarray *arr, size_t indent_level){
     if(arr->nd == 0){
         printf("%g\n", *arr->data);
     } else {
         size_t i, j;
         Ndarray *aux;
+
         printf("{");
         for(i = 0; i < arr->dimensions[0]; i++){
             aux = c_arrayindex(arr, i);
@@ -30,6 +32,7 @@ void c_arrayprint(Ndarray *arr, size_t indent_level){
     }
 }
 
+// works the same as c_arrayprint, but in such a way that the Lua interpreter recognizes
 int l_arrayprint(lua_State *L){
     Ndarray *arr = (Ndarray*)luaL_checkudata(L, 1, "ndarray");
     c_arrayprint(arr, 1);

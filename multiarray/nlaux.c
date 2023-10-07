@@ -10,6 +10,7 @@ void nL_repprint(const char *txt, size_t q){
         printf(txt);
 }
 
+// returns the value in `data` with the largest size as a string using the format `%g` (currently not used)
 size_t nL_getmaxalign(double *data, size_t data_len){
     char *str = NULL;
     sprintf(str, "%g", *data);

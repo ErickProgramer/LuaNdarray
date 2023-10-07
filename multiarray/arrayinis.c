@@ -1,8 +1,13 @@
+/*
+ * arrayinis.c: has initializing functions, functions that create Ndarrays automatically, often needing to inform only the shape
+ */
+
 #include "arrayinis.h"
 
 #include <lua.h>
 #include <lauxlib.h>
 
+// fills an array with the specified value in the desired shape
 int l_full(lua_State *L){
     luaL_checktype(L, 1, LUA_TNUMBER);
     luaL_checktype(L, 2, LUA_TTABLE);
@@ -18,6 +23,7 @@ int l_full(lua_State *L){
     res->dimensions = malloc(sizeof(size_t) * ndim);
     res->size = 1;
 
+    // creating the dimensions and size
     size_t i;
     for(i = 0; i < res->nd; i++){
         lua_rawgeti(L, 2, i+1);
@@ -26,6 +32,7 @@ int l_full(lua_State *L){
         lua_remove(L, -1);
     }
 
+    // creating the data
     res->data = malloc(sizeof(double) * res->size);
     for(i = 0; i < res->size; i++)
         res->data[i] = lua_tonumber(L, 1);
@@ -33,6 +40,7 @@ int l_full(lua_State *L){
     return 1;
 }
 
+// initializes an Ndarray with zeros
 int l_zeros(lua_State *L){
     luaL_checktype(L, 1, LUA_TTABLE);
     Ndarray *res = (Ndarray*)lua_newuserdata(L, sizeof(Ndarray));
@@ -65,6 +73,7 @@ int l_zeros(lua_State *L){
     return 1;
 }
 
+// creates an array from a Lua table (in development)
 int l_ndarray_by_table(lua_State *L){
     Ndarray *res = (Ndarray*)lua_newuserdata(L, sizeof(Ndarray));
 
@@ -99,5 +108,3 @@ int l_ndarray_by_table(lua_State *L){
 
     return 1;
 }
-
-
