@@ -19,11 +19,16 @@ static const luaL_Reg funs[] = {
     {"full", l_full},
     {"zeros", l_zeros},
     {"array", l_ndarray_by_table},
+    {"NdarrayDelete", l_NdarrayFree},
     {NULL, NULL}
 };
 
 static const luaL_Reg methods[] = {
+    // metamethods
     {"__tostring", l_ndarraytostring},
+    {"__gc", l_NdarrayFree},
+
+    // methods
     {"select", l_arrayindex},
     {"print", l_arrayprint},
     {NULL, NULL}

@@ -52,3 +52,13 @@ int l_newNdarray(lua_State *L){
     return 1; // returns the Ndarray
 }
 
+// free a Ndarray
+int l_NdarrayFree(lua_State *L){
+    Ndarray *arr = (Ndarray*)luaL_checkudata(L, 1, "ndarray");
+
+    free(arr->data);
+    free(arr->dimensions);
+    free(arr);
+
+    return 0;
+}

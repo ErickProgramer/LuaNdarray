@@ -23,6 +23,6 @@ typedef struct Ndarray_fields{
 } Ndarray;
 
 int l_newNdarray(lua_State*);
-
+int l_NdarrayFree(lua_State*);
 
 #endif /* NUMLUA_MULTIARRAY_ARRAYOBJ_H_ */
