@@ -25,14 +25,20 @@ void l_reshape_(lua_State *L, int arridx, int newshapeidx){
         shapemul *= newshape[i];
 
     if(shapemul != arr->size){
-        char tstring[101] = {'\0'};
-        for(i = 1; i <= new_ndim; i++){
+        luaL_Buffer b;
+        luaL_buffinit(L, &b);
+
+        for (i = 1; i <= new_ndim; i++) {
             lua_rawgeti(L, 2, i);
-            strcat(tstring, lua_tostring(L, -1));
-            if(i < new_ndim)
-                strcat(tstring, ",");
+            luaL_addstring(&b, lua_tostring(L, -1));
+            if (i < new_ndim)
+                luaL_addstring(&b, ",");
             lua_remove(L, -1);
         }
+
+        luaL_pushresult(&b);
+        const char *tstring = lua_tostring(L, -1);
+
         luaL_error(L, "cannot reshape array of size %d into shape {%s}", arr->size, tstring);
     }
     
