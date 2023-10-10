@@ -3,7 +3,7 @@ package = "LuaNdarray"
 version = "1.0.0-0"
 
 source = {
-    url = "https://github.com/ErickProgramer/LuaNdarray.git"
+    url = "git+https://github.com/ErickProgramer/LuaNdarray.git"
 }
 
 description = {
