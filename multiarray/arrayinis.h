@@ -1,5 +1,5 @@
-#ifndef NUMLUA_MULTIARRAY_ARRAYINIS_H_
-#define NUMLUA_MULTIARRAY_ARRAYINIS_H_
+#ifndef LUANDARRAY_MULTIARRAY_ARRAYINIS_H_
+#define LUANDARRAY_MULTIARRAY_ARRAYINIS_H_
 
 #include "arrayobj.h"
 
@@ -11,5 +11,7 @@ int l_zeros(lua_State*);
 int l_ones(lua_State*);
 int l_ndarray_by_table(lua_State*);
 int table_flatten(lua_State*);
+int aux_GetTableShape(lua_State*);
+int aux_flatten(lua_State*);
 
-#endif
+#endif /* LUANDARRAY_MULTIARRAY_ARRAYINIS_H_ */

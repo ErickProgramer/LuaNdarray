@@ -1,5 +1,5 @@
-#ifndef NUMLUA_MULTIARRAY_ARRAYOBJ_H_
-#define NUMLUA_MULTIARRAY_ARRAYOBJ_H_
+#ifndef LUANDARRAY_MULTIARRAY_ARRAYOBJ_H_
+#define LUANDARRAY_MULTIARRAY_ARRAYOBJ_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,4 +25,4 @@ typedef struct Ndarray_fields{
 int l_newNdarray(lua_State*);
 int l_NdarrayFree(lua_State*);
 
-#endif /* NUMLUA_MULTIARRAY_ARRAYOBJ_H_ */
+#endif /* LUANDARRAY_MULTIARRAY_ARRAYOBJ_H_ */
