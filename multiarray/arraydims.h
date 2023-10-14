@@ -1,5 +1,5 @@
-#ifndef NUMLUA_MULTIARRAY_ARRAYDIMS_H_
-#define NUMLUA_MULTIARRAY_ARRAYDIMS_H_
+#ifndef LUANDARRAY_MULTIARRAY_ARRAYDIMS_H_
+#define LUANDARRAY_MULTIARRAY_ARRAYDIMS_H_
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -9,4 +9,4 @@ int l_reshape(lua_State*);
 int l_transpose(lua_State*);
 int l_flatten(lua_State*);
 
-#endif /* NUMLUA_MULTIARRAY_ARRAYDIMS_H_ */
+#endif /* LUANDARRAY_MULTIARRAY_ARRAYDIMS_H_ */
