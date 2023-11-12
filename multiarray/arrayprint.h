@@ -6,7 +6,7 @@
 
 #include "arrayobj.h"
 
-void c_arrayprint(Ndarray*);
-int l_arrayprint(lua_State*);
+void c_arrayprint(Ndarray *arr, size_t indent_level);
+int l_arrayprint(lua_State *L);
 
 #endif /* LUANDARRAY_MULTIARRAY_ARRAYPRINT_H_ */

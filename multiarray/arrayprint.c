@@ -10,7 +10,7 @@ void c_arrayprint(Ndarray *arr, size_t indent_level){
     if(arr->nd == 0){
         printf("%g\n", *arr->data);
     } else {
-        size_t i, j;
+        size_t i;
         Ndarray *aux;
 
         printf("{");
@@ -34,7 +34,7 @@ void c_arrayprint(Ndarray *arr, size_t indent_level){
 
 // works the same as c_arrayprint, but in such a way that the Lua interpreter recognizes
 int l_arrayprint(lua_State *L){
-    Ndarray *arr = (Ndarray*)luaL_checkudata(L, 1, "ndarray");
+    Ndarray *arr = luaLN_checkndarray(L, 1);
     c_arrayprint(arr, 1);
     return 0;
 }
