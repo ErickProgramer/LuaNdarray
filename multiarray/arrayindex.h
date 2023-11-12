@@ -6,7 +6,7 @@
 
 #include "arrayobj.h"
 
-Ndarray *c_arrayindex(Ndarray*, int);
-int l_arrayindex(lua_State*);
+Ndarray *c_arrayindex(Ndarray *arr, int idx);
+int l_arrayindex(lua_State *L);
 
 #endif /* LUANDARRAY_MULTIARRAY_ARRAYINDEX_H_ */

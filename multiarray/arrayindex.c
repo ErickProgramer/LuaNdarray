@@ -1,5 +1,6 @@
 #include "arrayindex.h"
 #include "arrayobj.h"
+#include "nlaux.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,16 +17,13 @@ Ndarray *c_arrayindex(Ndarray *arr, int idx){
         return NULL;
 
     res->nd = arr->nd - 1;
-    res->dimensions = malloc(sizeof(size_t) * res->nd);
-    if(res->dimensions == NULL)
-        return NULL;
+    if(arr->nd > 1)
+        res->dimensions = arr->dimensions + 1;
 
     size_t i;
     res->size = 1;
-    for(i = 1; i < arr->nd; i++){
-        res->dimensions[i-1] = arr->dimensions[i];
+    for(i = 1; i < arr->nd; i++)
         res->size *= arr->dimensions[i];
-    }
 
     res->data = arr->data + (idx * res->size);
 
@@ -36,14 +34,16 @@ Ndarray *c_arrayindex(Ndarray *arr, int idx){
  * does the same things as c_arrayindex but in a way that Lua understands
  */
 int l_arrayindex(lua_State *L){
-    Ndarray *arr = (Ndarray*)luaL_checkudata(L, 1, "ndarray");
-    int idx = luaL_checkinteger(L, 2) - 1;
+    int idxstart = luaLN_getIndexStart(L);
+
+    Ndarray *arr = luaLN_checkndarray(L, 1);
+    int idx = luaL_checkinteger(L, 2) - idxstart;
 
     Ndarray *res = c_arrayindex(arr, idx);
-    lua_pushlightuserdata(L, (void*)res);
+    if(res == NULL)
+        luaL_error(L, "MemoryError: insufficient memory");
 
-    luaL_getmetatable(L, "ndarray");
-    lua_setmetatable(L, -2);
+    luaLN_pushndarray(L, res);
 
     return 1;
 }
