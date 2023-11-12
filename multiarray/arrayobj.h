@@ -22,7 +22,14 @@ typedef struct Ndarray_fields{
     size_t size;
 } Ndarray;
 
-int l_newNdarray(lua_State*);
-int l_NdarrayFree(lua_State*);
+int l_newNdarray(lua_State *L);
+int l_NdarrayFree(lua_State *L);
+int l_getshape(lua_State *L);
+int l_getsize(lua_State *L);
+int l_item(lua_State *L);
+int l_len(lua_State *L);
+int l_index(lua_State *L);
+int l_IndexStartZero(lua_State *L);
+int l_GetIndexStart(lua_State *L);
 
 #endif /* LUANDARRAY_MULTIARRAY_ARRAYOBJ_H_ */
