@@ -19,9 +19,9 @@ function Ndarray:print() end
 ---@return ln.Ndarray
 function Ndarray:select(idx) end
 
----@overload fun():ln.Ndarray
+---@overload fun():number
 ---@param i integer
----@return ln.Ndarray
+---@return number
 function Ndarray:item(i) end
 
 ---@param new_shape table
@@ -171,6 +171,6 @@ function luandarray.GetIndexStart() end
 
 
 ---@type LuaNdarray
-local ln = require "cinit"
+local ln = require "luandarray.core"
 
 return ln
