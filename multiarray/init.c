@@ -76,7 +76,7 @@ static const luaL_Reg methods[] = {
     {NULL, NULL}
 };
 
-int luaopen_cinit(lua_State *L){
+int luaopen_luandarray_core(lua_State *L){
     // Index start in 1 by default.
     lua_pushboolean(L, 0);
     lua_setglobal(L, "__INDEX_START_IN_ZERO");
