@@ -33,6 +33,9 @@ void luaLN_newlib(lua_State *L, const luaL_Reg *lib);
 
 void luaLN_error(lua_State *L, const char *fmt, ...);
 
+Ndarray *luaLN_casttoNdarray(lua_State *L, int vpos);
+
+void luaLN_NdarrayFree(Ndarray *arr);
 /*********************/
 
 /* luaLN_* macros */

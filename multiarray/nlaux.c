@@ -231,3 +231,26 @@ void luaLN_error(lua_State *L, const char *fmt, ...) {
     va_end(args);
     free(error);
 }
+
+Ndarray *luaLN_casttoNdarray(lua_State *L, int vpos){
+    switch (lua_type(L, vpos)){
+    case LUA_TNUMBER:{
+        Ndarray *res = luaLN_newNdarray(L);
+        res->nd = 0;
+        res->size = 1;
+        res->dimensions = NULL;
+
+        res->data = luaLN_malloc(L, sizeof(double));
+        *res->data = luaL_checknumber(L, vpos);
+
+        lua_replace(L, vpos);
+        break;
+    }
+    }
+}
+
+void luaLN_NdarrayFree(Ndarray *arr){
+    free(arr->data);
+    free(arr->dimensions);
+    free(arr);
+}
