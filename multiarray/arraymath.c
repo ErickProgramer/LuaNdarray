@@ -129,6 +129,11 @@ int l_broadcast_to(lua_State *L){
 }
 
 static int new_mathoperation(lua_State *L, OperationFunction f){
+    int free_arr1 = lua_type(L, 1) == LUA_TNUMBER;
+    int free_arr2 = lua_type(L, 2) == LUA_TNUMBER;
+    luaLN_casttoNdarray(L, 1);
+    luaLN_casttoNdarray(L, 2);
+
     Ndarray *arr1 = luaLN_checkndarray(L, 1);
     Ndarray *arr2 = luaLN_checkndarray(L, 2);
 
@@ -154,7 +159,10 @@ static int new_mathoperation(lua_State *L, OperationFunction f){
 
     size_t i;
     for(i = 0; i < max_arr->size; i++)
-        res->data[i] = min_expanded->data[i] + max_arr->data[i];
+        res->data[i] = f(min_expanded->data[i], max_arr->data[i]);
+
+    if(free_arr1) luaLN_NdarrayFree(arr1);
+    if(free_arr2) luaLN_NdarrayFree(arr2);
 
     return 0;
 }
