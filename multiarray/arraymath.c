@@ -137,8 +137,6 @@ static int new_mathoperation(lua_State *L, OperationFunction f){
     Ndarray *arr1 = luaLN_checkndarray(L, 1);
     Ndarray *arr2 = luaLN_checkndarray(L, 2);
 
-    printf("arr1->data = %g\narr2->data = %g\n", *arr1->data, *arr2->data);
-
     Ndarray *min_arr = arr1;
     Ndarray *max_arr = arr2;
     if(arr2->size < arr1->size){
