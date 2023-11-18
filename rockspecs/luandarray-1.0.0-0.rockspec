@@ -32,7 +32,7 @@ build = {
                        "multiarray/arrayinis.c",
                        "multiarray/arrayobj.c",
                        "multiarray/arrayprint.c",
-                       "multiarray/cinit.c",
+                       "multiarray/init.c",
                        "multiarray/converts.c",
                        "multiarray/nlaux.c",
                        "multiarray/arraymath.c"}
