@@ -47,7 +47,7 @@ int l_newNdarray(lua_State *L){
 
 // free a Ndarray
 int l_NdarrayFree(lua_State *L){
-    Ndarray *arr = luaLN_checkndarray(L, 1);//(Ndarray*)luaL_checkudata(L, 1, "ndarray");
+    Ndarray *arr = luaLN_checkndarray(L, 1);
 
     if(arr){
         free(arr->data);
