@@ -1,6 +1,6 @@
 ---@diagnostic disable: lowercase-global
 package = "LuaNdarray"
-version = "1.0.0-1"
+version = "1.0.0-2"
 
 source = {
     url = "git+https://github.com/ErickProgramer/LuaNdarray.git"
