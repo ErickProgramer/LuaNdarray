@@ -26,7 +26,7 @@ dependencies = {
 build = {
     type = "builtin",
     modules = {
-        ["luandarray"] = {
+        ["luandarray.core"] = {
             sources = {"multiarray/arraydims.c",
                        "multiarray/arrayindex.c",
                        "multiarray/arrayinis.c",
@@ -34,8 +34,10 @@ build = {
                        "multiarray/arrayprint.c",
                        "multiarray/cinit.c",
                        "multiarray/converts.c",
-                       "multiarray/nlaux.c"}
+                       "multiarray/nlaux.c",
+                       "multiarray/arraymath.c"}
         },
 
-    }
+        ["luandarray.init"] = "multiarray/init.lua"
+    },
 }
