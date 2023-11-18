@@ -34,7 +34,9 @@ build = {
                        "multiarray/arrayprint.c",
                        "multiarray/cinit.c",
                        "multiarray/converts.c",
-                       "multiarray/nlaux.c"}
+                       "multiarray/nlaux.c",
+                       "multiarray/arraymath.c"
+                      }
         },
 
     }
