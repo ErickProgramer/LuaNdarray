@@ -35,7 +35,8 @@ build = {
                        "multiarray/cinit.c",
                        "multiarray/converts.c",
                        "multiarray/nlaux.c",
-                       "multiarray/arraymath.c"}
+                       "multiarray/arraymath.c"
+                      }
         },
 
     }
