@@ -31,7 +31,7 @@ static const luaL_Reg funs[] = {
     {"add", l_math_add},
     {"sub", l_math_sub},
     {"mul", l_math_mul},
-    {"div", l_math_sub},
+    {"div", l_math_div},
     {"pow", l_math_pow},
     {"acos", l_math_acos},
     {"asin", l_math_asin},
