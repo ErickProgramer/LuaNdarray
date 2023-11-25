@@ -131,6 +131,7 @@ int l_broadcast_to(lua_State *L){
 static int new_mathoperation(lua_State *L, OperationFunction f){
     int free_arr1 = lua_type(L, 1) == LUA_TNUMBER;
     int free_arr2 = lua_type(L, 2) == LUA_TNUMBER;
+
     luaLN_casttoNdarray(L, 1);
     luaLN_casttoNdarray(L, 2);
 
@@ -139,6 +140,7 @@ static int new_mathoperation(lua_State *L, OperationFunction f){
 
     Ndarray *min_arr = arr1;
     Ndarray *max_arr = arr2;
+
     if(arr2->size < arr1->size){
         min_arr = arr2;
         max_arr = arr1;
@@ -147,6 +149,14 @@ static int new_mathoperation(lua_State *L, OperationFunction f){
     // Version expanded of the min array
     Ndarray *min_expanded = luaLN_newNdarray(L);
     c_broadcast_to(L, min_expanded, min_arr, max_arr->dimensions, max_arr->nd);
+
+    // searches for the first operator and the second to avoid calculation errors
+    Ndarray *first_operator = max_arr;
+    Ndarray *second_operator = min_expanded;
+    if(min_arr == arr1){
+        first_operator = min_expanded;
+        second_operator = max_arr;
+    } 
 
     Ndarray *res = luaLN_newNdarray(L);
     res->size = max_arr->size;
@@ -159,7 +169,7 @@ static int new_mathoperation(lua_State *L, OperationFunction f){
 
     size_t i;
     for(i = 0; i < max_arr->size; i++)
-        res->data[i] = f(min_expanded->data[i], max_arr->data[i]);
+        res->data[i] = f(first_operator->data[i], second_operator->data[i]);
 
     if(free_arr1) luaLN_NdarrayFree(arr1);
     if(free_arr2) luaLN_NdarrayFree(arr2);
