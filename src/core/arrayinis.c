@@ -27,7 +27,7 @@ Ndarray *LNArray_Empty(const size_t *dims, size_t ndim, const LNTypeDescr *dtype
     arr->size = 1;
     for(i = arr->nd; i > 0; i--){
         arr->dimensions[i-1] = dims[i-1];
-        arr->strides[i-1] = arr->size*dtype->alignment;
+        arr->strides[i-1] = (long long)(arr->size*dtype->alignment);
         arr->size *= arr->dimensions[i-1];
     }
 
@@ -136,14 +136,6 @@ Ndarray *LNArray_Ones(const size_t *dims, size_t ndim, const LNTypeDescr *dtype)
     return arr;
 }
 
-// #define CASE(id, type, cast)\
-//     case id:\
-//         for(i=start, p=0; ((cast)i) < ((cast)(stop)); i+=((cast)(step)), p++){\
-//             printf("%lld\n",((cast)i));\
-//             ((type*)arr->data)[p] = (type)(cast)i;\
-//         }\
-//         break\
-
 Ndarray *LNArray_Range(double start, double stop, double step, const LNTypeDescr *dtype){
     Ndarray *arr = LNArray_Alloc();
     if(!arr)
@@ -186,8 +178,6 @@ Ndarray *LNArray_Range(double start, double stop, double step, const LNTypeDescr
     arr->strides[0] = dtype->alignment;
     arr->dtype = dtype;
 
-    // LNArray_Debug(arr);
-
     size_t p;
     switch(dtype->id){
         case LN_BOOL:
@@ -227,48 +217,6 @@ Ndarray *LNArray_Range(double start, double stop, double step, const LNTypeDescr
         case LN_COMPLEX128:
             LNComplex128Vector_Range((complex128_t*)arr->data, start, stop, step);
             break;
-
-        // case LN_INT8:{
-        //     long long _start, _stop, _step;
-        //     _start=(long long)start;
-        //     _stop=(long long)stop;
-        //     _step=(long long)step;
-        //     long long i;
-        //     for(i=_start,p=0; i < _stop; i+=_step,p++){
-        //         printf("%d\n",(int8_t)i);
-        //         ((int8_t*)arr->data)[p] = (int8_t)i;
-        //     }
-        // }
-        // // CASE(LN_INT8, int8_t, long long);
-
-        // // case LN_UINT16:
-        // // CASE(LN_INT16, int16_t, long long);
-
-        // // case LN_UINT32:
-        // // CASE(LN_INT32, int32_t, long long);
-
-        // // case LN_UINT64:
-        // // CASE(LN_INT64, int64_t, long long);
-
-        // // CASE(LN_FLOAT32, float32_t, double);
-        // // CASE(LN_FLOAT64, float64_t, double);
-
-        // case LN_COMPLEX64:{
-        //     double i;
-        //     for(i=start,p=0; i<stop; i+=step, p++){
-        //         ((complex64_t*)arr->data)[p].realp = (float32_t)i;
-        //         ((complex64_t*)arr->data)[p].imagp = 0.0f;
-        //     }
-        //     break;
-        // }
-        // case LN_COMPLEX128:{
-        //     double i;
-        //     for(i=start,p=0; i<stop; i+=step, p++){
-        //         ((complex128_t*)arr->data)[p].realp = (float64_t)i;
-        //         ((complex128_t*)arr->data)[p].imagp = 0.0f;
-        //     }
-        //     break;
-        // }
     }
 
     return arr;
