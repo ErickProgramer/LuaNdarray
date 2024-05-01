@@ -1,12 +1,17 @@
+local setmetatable, getmetatable = setmetatable, getmetatable
+
 local ffi=require"ffi"
 
-local lnc=ffi.load("core")
+local lnc=ffi.load("luandarray/luajit/core")
 
 local dtype_meta={}
 dtype_meta.__index=dtype_meta
 
-local function newDType(struct)
+---@return ln.dtype
+local function newDType(struct, constructor)
     local self=setmetatable({},dtype_meta)
+    getmetatable(self).__call = constructor
+
     self.dtype=struct
     self.name=""
     self.alignment=self.dtype.alignment

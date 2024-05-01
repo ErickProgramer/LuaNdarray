@@ -23,7 +23,7 @@ void LNArray_BroadcastTo(Ndarray *out, Ndarray *arr, size_t *to, size_t nd, char
     // iterators
     size_t i, j;
 
-    if(err_msg==NULL){
+    if(err_msg == NULL){
         LNBuffer *b = LNBuff_alloc();
         LNBuff_Init(b);
 
@@ -109,6 +109,7 @@ void LNArray_BroadcastTo(Ndarray *out, Ndarray *arr, size_t *to, size_t nd, char
     for(i=new_ndim;i>0;i--){
         if(!((dims1_expanded[i-1] == dims2_expanded[i-1]) || (dims1_expanded[i-1]==1 || dims2_expanded[i-1]==1))){
             free(new_dims);
+            free(new_strides);
             free(dims1_expanded);
             free(dims2_expanded);
             LNError_setString(err_msg);
@@ -140,7 +141,7 @@ void LNArray_BroadcastTo(Ndarray *out, Ndarray *arr, size_t *to, size_t nd, char
     out->dimensions = LNMem_alloc(sizeof(size_t)*new_ndim);
     if(!out->dimensions)
         return;
-    out->strides = LNMem_alloc(sizeof(long)*new_ndim);
+    out->strides = LNMem_alloc(sizeof(long long)*new_ndim);
     if(!out->strides)
         return;
     memcpy(out->dimensions, dims1_expanded, sizeof(size_t)*new_ndim);
@@ -149,17 +150,20 @@ void LNArray_BroadcastTo(Ndarray *out, Ndarray *arr, size_t *to, size_t nd, char
 
     out->size = 1;
     for(i=new_ndim; i>0; i--){
-        out->strides[i-1] = (long)(out->size*LNArray_ALIGNMENT(out));
+        out->strides[i-1] = (long long)(out->size*LNArray_ALIGNMENT(out));
         out->size *= new_dims[i-1];
     }
     out->size=arr->size;
 
-    if(1 || arr->size==1){
+    if(LNArray_IsContiguous(arr)){
         memcpy(out->data, arr->data, LNArray_ALIGNMENT(arr) * arr->size);
+    } else {
+        i = 0;
+        LN_ARRAY_APPLY_CONTIG(arr,
+            memcpy(out->data + i * LNArray_ALIGNMENT(arr), item, LNArray_ALIGNMENT(arr));
+        );
     }
-
     char *expanded = LNMem_alloc(LNArray_ALIGNMENT(out) * new_size);
-
     if(!expanded)
         return;
 

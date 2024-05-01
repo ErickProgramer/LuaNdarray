@@ -81,7 +81,7 @@ struct Ndarray_fields{
     /* dimensions of the array */
     size_t *dimensions;
 
-    long *strides;
+    long long *strides;
 
     /* number of dimensions */
     size_t nd;
@@ -119,6 +119,8 @@ LNError_t LNExc_Error;
 int LNError_Ocurred();
 char *LNError_Get();
 
+void *LNMem_alloc(size_t bytes);
+
 void LNDType_Init();
 void LNDType_Free(LNTypeDescr *dtype);
 
@@ -150,6 +152,8 @@ Ndarray *LNArray_Empty(const size_t *dims, size_t ndim, const LNTypeDescr *dtype
 ---@field itemsize ffi.cdata*
 
 ---@class ln.dtype
+---@overload fun(data: any): ln.Ndarray
+---@operator call(ln.dtype): ln.dtype
 ---@field name string
 ---@field alignment integer
 ---@field itemsize integer

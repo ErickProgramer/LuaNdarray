@@ -8,15 +8,13 @@ local newproxy=newproxy
 local table=table
 
 local ffi=require"ffi"
-local newDType, dtype_meta = require("dtype").newDType, require("dtype").dtype_meta
-local Complex = require("complex")
-
--- local Complex, complex = require("complex").Complex, require("complex").complex
+local newDType, dtype_meta = require("luandarray.luajit.dtype").newDType, require("luandarray.luajit.dtype").dtype_meta
+local Complex = require("luandarray.luajit.complex")
 
 -- load definitions.
-require "defs"
+require "luandarray.luajit.defs"
 
-local lnc=ffi.load("core.dll")
+local lnc=ffi.load("luandarray/luajit/core")
 lnc.LNDType_Init()
 
 local proxy_key = rawget(_G, "__GC_PROXY") or "__gc_proxy"
@@ -70,8 +68,12 @@ local function string_to_charvec(str)
     return vec
 end
 
+local function isFloat(x)
+    return type(x) == "number" and x ~= math.floor(x)
+end
+
 local function isInteger(x)
-    return type(x)=="number" and x==math.floor(x)
+    return type(x)=="number" and x == math.floor(x)
 end
 
 local ln={
@@ -94,28 +96,31 @@ local function expected_arg(fname, v, arg, expected)
     assert(ln.type(arg)=="ndarray", ("bad argument #%d to '%s' (%s expected, got %s)"):format(arg, fname, expected, ln.type(v)), 2)
 end
 
-local id_dtype={
-    [lnc.LN_INT8]=ln.int8,
-    [lnc.LN_INT16]=ln.int16,
-    [lnc.LN_INT32]=ln.int32,
-    [lnc.LN_INT64]=ln.int32,
+local LNGetDTypeByID
+do
+    local id_dtype={
+        [lnc.LN_INT8]=ln.int8,
+        [lnc.LN_INT16]=ln.int16,
+        [lnc.LN_INT32]=ln.int32,
+        [lnc.LN_INT64]=ln.int32,
 
-    [lnc.LN_UINT8]=ln.uint8,
-    [lnc.LN_UINT16]=ln.uint16,
-    [lnc.LN_UINT32]=ln.uint32,
-    [lnc.LN_UINT64]=ln.uint32,
+        [lnc.LN_UINT8]=ln.uint8,
+        [lnc.LN_UINT16]=ln.uint16,
+        [lnc.LN_UINT32]=ln.uint32,
+        [lnc.LN_UINT64]=ln.uint32,
 
-    [lnc.LN_FLOAT32]=ln.float32,
-    [lnc.LN_FLOAT64]=ln.float64,
+        [lnc.LN_FLOAT32]=ln.float32,
+        [lnc.LN_FLOAT64]=ln.float64,
 
-    [lnc.LN_COMPLEX64]=ln.complex64,
-    [lnc.LN_COMPLEX128]=ln.complex128,
+        [lnc.LN_COMPLEX64]=ln.complex64,
+        [lnc.LN_COMPLEX128]=ln.complex128,
 
-    [lnc.LN_BOOL]=ln.bool,
-    [lnc.LN_CHAR]=ln.char
-}
-local function LNGetDTypeByID(id)
-    return id_dtype[id]
+        [lnc.LN_BOOL]=ln.bool,
+        [lnc.LN_CHAR]=ln.char
+    }
+    function LNGetDTypeByID(id)
+        return id_dtype[id]
+    end
 end
 
 function dtype_meta:__call(value)
@@ -152,7 +157,7 @@ function ndarray:__index(idx)
     if type(idx)=="number" then
         local res=lnc.LNArray_Index(self.ndarray, idx)
         if LNError_Ocurred() then
-            LNError_Raise(2)
+            LNError_Raise()
         end
         return ln.ndarray(res)
     elseif idx=="ndim" then
@@ -163,7 +168,7 @@ end
 
 ---@overload fun(): ln.Ndarray
 ---@overload fun(ndarray: ln.Ndarray*): ln.Ndarray
----@overload fun(shape: table, dtype: ln.dtype, strides: table): ln.Ndarray
+---@overload fun(shape: table, dtype: ln.dtype, strides?: table): ln.Ndarray
 function ln.ndarray(...)
     local args={...}
 
@@ -172,7 +177,7 @@ function ln.ndarray(...)
     end
 
     local self = ln_setmetatable({}, ndarray)
-    
+
     if #args == 1 and type(args[1])=="cdata" then
         ---@type ln.Ndarray*
         local cndarray = args[1]
@@ -192,40 +197,48 @@ function ln.ndarray(...)
         end
 
         return self
-    end
+    elseif #args == 2 then
+        self.shape, self.dtype = args[1], args[2]
+        self.ndim = #self.shape
 
-    if #args == 1 and type(args[1]) == "table" then
-        ---@type options
-        local options=args[1]
-        self.shape = options
-    end
-    self.shape, self.dtype, self.strides = args[1], args[2], args[3]
-    self.ndim = #self.shape
-
-    self.size=1
-    local shape = ffi.new("size_t[?]", self.ndim)
-    for i = 1, self.ndim do
-        self.size=self.size*self.shape[i]
-        shape[i-1] = self.shape[i]
-    end
-    self.ndarray = lnc.LNArray_Empty(shape, self.ndim, self.dtype.dtype)
-
-    if self.strides == nil then
-        self.strides = {}
+        self.size = 1
+        local shape = ffi.new("size_t[?]", self.ndim)
         for i = 1, self.ndim do
-            self.strides[i]=self.ndarray.strides[i-1]
+            shape[i-1] = self.shape[i]
+            self.size = self.size * shape[i-1]
         end
+
+        self.ndarray = lnc.LNArray_Empty(shape, self.ndim, self.dtype.dtype)
+        if LNError_Ocurred() then
+            LNError_Raise()
+        end
+
+        return self
+    elseif #args == 3 then
+        self.shape, self.dtype, self.strides = args[1], args[2], args[3]
+        self.ndim = #self.shape
+
+        local shape = ffi.new("size_t[?]", self.ndim)
+        for i = 1, self.ndim do
+            shape[i-1] = self.shape[i]
+        end
+        self.ndarray = lnc.LNArray_Empty(shape, self.ndim, self.dtype.dtype)
+
+        if not self.strides then
+            self.strides = {}
+            for i = 1, self.ndim do
+                self.strides[i] = self.ndarray.strides[i-1]
+            end
+        else
+            for i = 1, self.ndim do
+                self.ndarray.strides[i-1] = self.strides[i]
+            end
+        end
+
+        return self
     else
-        for i = 1, self.ndim do
-            self.ndarray.strides[i-1] = ffi.cast("long long",self.strides[i])
-        end
+        error("wrong number of arguments to 'ndarray'", 2)
     end
-
-    if LNError_Ocurred() then
-        LNError_Raise()
-    end
-
-    return self
 end
 
 function ndarray:astype(new)
@@ -288,9 +301,7 @@ function ndarray:__add(other)
     return ln.add(self,other)
 end
 
-function ndarray:__newindex(idx, v)
-    rawset(self, idx, v)
-end
+ndarray.iter = ln.iter
 
 ---@param data table|number
 ---@param dtype? ln.dtype
@@ -298,7 +309,7 @@ end
 function ln.array(data, dtype)
     local flatten_data={}
     local function flatten(x)
-        if type(x)~="table" or x.__name=="complex" then
+        if ln.type(x)~="table" or Complex.is(x) then
             table.insert(flatten_data,x)
             return
         end
@@ -309,41 +320,77 @@ function ln.array(data, dtype)
     end
     flatten(data)
 
+    if not dtype then
+        for i = 1, #flatten_data do
+            if Complex.is(flatten_data[i]) then
+                dtype = ln.complex128
+                break
+            elseif isFloat(flatten_data[i]) then
+                dtype = ln.float64
+                break
+            elseif isInteger(flatten_data[i]) then
+                dtype = ln.int64
+                break
+            elseif type(flatten_data[i]) == "boolean" then
+                dtype = ln.bool
+                break
+            end
+        end
+    end
+
     local shape={}
     while type(data)=="table" and data.__name ~= "complex" do
         table.insert(shape,#data)
         data=data[1]
     end
 
-    local data_c = ffi.new(dtype.name.."_t")
-    
+    local dtype_repr = dtype.name .. "_t[?]"
+    local data_c = ffi.new(dtype_repr, #flatten_data)
 
-    -- return ln.ndarray(flatten_data,shape,dtype or ln.int64)
+    if dtype == ln.complex128 or dtype == ln.complex64 then
+        for i = 1, #flatten_data do
+            if Complex.is(flatten_data[i]) then
+                data_c[i-1].realp = flatten_data[i].real
+                data_c[i-1].imagp = flatten_data[i].imag
+            elseif type(flatten_data[i]) == "number" then
+                data_c[i-1].realp = flatten_data[i]
+                data_c[i-1].imagp = 0
+            end
+        end
+    else
+        for i = 1, #flatten_data do
+            data_c[i-1] = flatten_data[i]
+        end
+    end
+
+    local arr = ln.ndarray(shape, dtype)
+    arr.ndarray.data = ffi.cast("char*", data_c)
+
+    return arr
 end
 
 function ln.iter(arr)
     assert(ln.type(arr) == "ndarray", "bad argument #1 to 'iter' (ndarray expected, got "..ln.type(arr)..")", 2)
 
-    local i=0
+    local i = -1
     return function ()
-        if i==arr.ndim then
-            return nil
+        i = i + 1
+        if i == arr.shape[1] then
+            return nil, nil
         end
 
-        i=i+1
-        return i-1, arr[i-1]
+        return i, arr[i]
     end
 end
 
 ---@param shape? table
 ---@param dtype? ln.dtype
----@return table
+---@return ln.Ndarray
 function ln.zeros(shape, dtype)
     if shape == nil then
         shape = {}
     elseif type(shape) == "number" then
         shape = {shape}
-    elseif n then
     end
 
     dtype=dtype or ln.float64
@@ -358,7 +405,7 @@ function ln.zeros(shape, dtype)
         LNError_Raise()
     end
 
-    return setmetatable({ndarray=res}, ndarray_meta)
+    return ln.ndarray(res)
 end
 
 ---@param shape table
@@ -396,11 +443,19 @@ function ln.empty(shape, dtype)
         LNError_Raise()
     end
 
-    return ln.ndarray(res,dtype)
+    return ln.ndarray(res)
 end
 
+---@param arr ln.Ndarray
+---@param to table
+---@return ln.Ndarray
 function ln.broadcast_to(arr, to)
-    local out = ffi.new("Ndarray[1]")
+    ---@type ln.Ndarray*
+    local out = ffi.cast("Ndarray*", lnc.LNMem_alloc(ffi.sizeof("Ndarray")))
+    if LNError_Ocurred() then
+        LNError_Raise()
+    end
+
     local to_c = ffi.new("size_t[?]", #to)
     for i = 1, #to do
         to_c[i-1]=to[i]
@@ -411,7 +466,7 @@ function ln.broadcast_to(arr, to)
         LNError_Raise()
     end
 
-    return setmetatable({ndarray=out, dtype=arr.dtype}, ndarray_meta)
+    return ln.ndarray(out)
 end
 
 function ln.add(arr1,arr2)
@@ -420,7 +475,7 @@ function ln.add(arr1,arr2)
         LNError_Raise()
     end
 
-    return setmetatable({ndarray=res}, ndarray_meta)
+    return ln.ndarray(res)
 end
 
 function ln.max(arr, axis)
@@ -433,7 +488,7 @@ function ln.max(arr, axis)
     if LNError_Ocurred() then
         LNError_Raise()
     end
-    return setmetatable({ndarray=res,shape=arr.shape,strides=arr.strides},ndarray_meta)
+    return ln.ndarray(res)
 end
 
 function ln.promote_types(t1, t2)
@@ -452,40 +507,36 @@ function ln.promote_types(t1, t2)
     end
 end
 
----@type ln.dtype
-ln.int8=newDType(lnc.LNInt8)
----@type ln.dtype
-ln.int16=newDType(lnc.LNInt16)
----@type ln.dtype
-ln.int32=newDType(lnc.LNInt32)
----@type ln.dtype
-ln.int64=newDType(lnc.LNInt64)
+do
+    ---@param self ln.dtype
+    ---@param data any
+    ---@return ln.Ndarray
+    local function builder(self, data)
+        return ln.array(data, self)
+    end
 
----@type ln.dtype
-ln.uint8=newDType(lnc.LNUInt8)
----@type ln.dtype
-ln.uint16=newDType(lnc.LNUInt16)
----@type ln.dtype
-ln.uint32=newDType(lnc.LNUInt32)
----@type ln.dtype
-ln.uint64=newDType(lnc.LNUInt64)
+    ln.int8=newDType(lnc.LNInt8, builder)
 
----@type ln.dtype
-ln.float32=newDType(lnc.LNFloat32)
----@type ln.dtype
-ln.float64=newDType(lnc.LNFloat64)
+    ln.int16=newDType(lnc.LNInt16, builder)
+    ln.int32=newDType(lnc.LNInt32, builder)
+    ln.int64=newDType(lnc.LNInt64, builder)
 
----@type ln.dtype
-ln.complex64=newDType(lnc.LNComplex64)
----@type ln.dtype
-ln.complex128=newDType(lnc.LNComplex128)
+    ln.uint8=newDType(lnc.LNUInt8, builder)
+    ln.uint16=newDType(lnc.LNUInt16, builder)
+    ln.uint32=newDType(lnc.LNUInt32, builder)
+    ln.uint64=newDType(lnc.LNUInt64, builder)
 
----@type ln.dtype
-ln.bool=newDType(lnc.LNBool)
----@type ln.dtype
-ln.char=newDType(lnc.LNChar)
+    ln.float32=newDType(lnc.LNFloat32, builder)
+    ln.float64=newDType(lnc.LNFloat64, builder)
 
-ln.byte=ln.int8
+    ln.complex64=newDType(lnc.LNComplex64, builder)
+    ln.complex128=newDType(lnc.LNComplex128, builder)
+
+    ln.bool=newDType(lnc.LNBool, builder)
+    ln.char=newDType(lnc.LNChar, builder)
+
+    ln.byte=ln.int8
+end
 
 do
     local function isNdarray(x)
@@ -518,16 +569,5 @@ do
         return type(v)
     end
 end
-
--- debug.setmetatable(debug,{
---     __metatable=false,
---     __index=function (t, k)
---         return nil
---         -- error("LuaNdarray has restricted the use of the debug standard library.")
---     end
--- })
-
--- print(debug.getmetatable(debug))
-
 
 return ln
