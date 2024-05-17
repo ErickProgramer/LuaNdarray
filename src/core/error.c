@@ -13,11 +13,11 @@ void LNError_Init(){
     LNExc_Error.err = 0;
 }
 
+#if defined(LUA)
 void LNError_setState(lua_State *L){
-    #ifdef LUA
     LNExc_Error.L = L;
-    #endif
 }
+#endif
 
 void LNError_setString(const char *errmsg){
     LNError_Remove();
@@ -37,10 +37,10 @@ void LNError_setFString(const char *fmt, ...){
     va_end(args);
 
     va_start(args, fmt);
-    char *err = malloc(n);
+    char *err = malloc(n+1);
     if(!err)
         err="Fatal Error: error on allocate the message error";
-    vsnprintf(err, n, fmt, args);
+    vsnprintf(err, n+1, fmt, args);
     va_end(args);
 
     LNError_Remove();

@@ -1,10 +1,12 @@
 local setmetatable, getmetatable = setmetatable, getmetatable
+local type = type
 
 local ffi=require"ffi"
 
 local lnc=ffi.load("luandarray/luajit/core")
 
 local dtype_meta={}
+dtype_meta.__name = "dtype"
 dtype_meta.__index=dtype_meta
 
 ---@return ln.dtype
@@ -35,7 +37,7 @@ function dtype_meta:__gc()
 end
 
 function dtype_meta.is(v)
-    return type(v) == "table" and (v.__name=="dtype" and type(v.dtype) == "cdata")
+    return type(v) == "table" and (v.__name=="dtype" and tostring(ffi.typeof(v.dtype)) == "ctype<const struct LNTypeDescr *>")
 end
 
 return {newDType=newDType, dtype_meta=dtype_meta}

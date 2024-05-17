@@ -1,6 +1,9 @@
-local ffi = require "ffi"
 --              LuaJIT                --
 -- LuaNdarray Complex Numbers library --
+
+local setmetatable = setmetatable
+local type = type
+local math = math
 
 local function re(x)
     if type(x)=="number" then
@@ -92,7 +95,7 @@ function complex:__tostring()
 end
 
 function complex:is()
-    return (type(self)=="table" and self.__name=="complex") or ffi.istype("complex", self)
+    return (type(self)=="table" and self.__name=="complex")
 end
 
 -- global Complex to create Complex numbers...

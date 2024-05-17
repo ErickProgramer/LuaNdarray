@@ -19,9 +19,6 @@ Ndarray *LNArray_MultiIndex(Ndarray *arr, long long *idxs, size_t nidxs);
 
 void* LNArray_MultiIndexItem(Ndarray *arr, long long *idxs);
 
-// #define LNArray_adjustidx(arr, idx) ((idx) * (arr)->strides[0])
-// #define LNArray_NdarrayItem(arr, idx) ((arr)->data[LNArray_adjustidx(arr, idx)])
-// #define LNArray_moveptr(arr, pos) (((arr)->data + LNArray_adjustidx(arr, pos)))
-// #define LNArray_Item(arr, idx) (arr)->data[LNArray_adjustidx(arr, idx)]
+void LNArray_MapDim(Ndarray *arr, long long dim);
 
 #endif

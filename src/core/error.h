@@ -5,8 +5,10 @@
 #include<stdlib.h>
 #include<stdarg.h>
 
+#if defined(LUA)
 #include<lua.h>
 #include<lauxlib.h>
+#endif
 
 typedef struct LNError_t{
     char *errmsg;
@@ -38,7 +40,10 @@ void LNError_Init();
 
 void LNError_setString(const char *err);
 void LNError_setFString(const char *fmt, ...);
+
+#if defined(LUA)
 void LNError_setState(lua_State *L);
+#endif
 
 #if defined(LUA)
 void LNError_Run();

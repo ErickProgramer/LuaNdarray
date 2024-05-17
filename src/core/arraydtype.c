@@ -11,7 +11,7 @@
 #define CASTCASE(id, oldtype, real)\
     case id:{\
         LN_ARRAY_APPLY_CONTIG(src,\
-            ((real*)dst)[i] = (real)(*(oldtype*)item);\
+            ((real*)((dst)->data))[i] = (real)(*(oldtype*)item);\
             i++;\
         );\
         break;\
@@ -19,7 +19,7 @@
 
 #define LN_GENERATE_CAST_FUNC(tpy)\
     static void ln_cast_##tpy##_to(Ndarray *dst, const Ndarray *src, LNDTypes newtype){\
-        size_t i;\
+        size_t i = 0;\
         const tpy *src_cast = (const tpy*)src;\
         switch (newtype){\
             CASTCASE(LN_INT8, tpy, int8_t)\
@@ -31,6 +31,9 @@
             CASTCASE(LN_UINT16, tpy, uint16_t)\
             CASTCASE(LN_UINT32, tpy, uint32_t)\
             CASTCASE(LN_UINT64, tpy, uint64_t)\
+\
+            CASTCASE(LN_FLOAT32, tpy, float32_t);\
+            CASTCASE(LN_FLOAT64, tpy, float64_t);\
 \
             case LN_COMPLEX64:\
                 LN_ARRAY_APPLY_CONTIG(src,\
@@ -61,7 +64,7 @@
 #define LN_GENERATE_COMPLEX_CAST_FUNC(complex_type, parts_type)\
     static void ln_cast_##complex_type##_to(Ndarray *dst, const Ndarray *src, LNDTypes newtype){\
         complex_type *src_cast=(complex_type*)src;\
-        size_t i;\
+        size_t i = 0;\
         switch(newtype){\
             CASE(LN_INT8,  complex_type, int8_t);\
             CASE(LN_INT16, complex_type, int16_t);\
@@ -192,9 +195,9 @@ LN_NEW_DTYPE_CREATOR(LN_UINT16, uint16_t, UInt16, uint16)
 LN_NEW_DTYPE_CREATOR(LN_UINT32, uint32_t, UInt32, uint32)
 LN_NEW_DTYPE_CREATOR(LN_UINT64, uint64_t, UInt64, uint64)
 
-LN_NEW_DTYPE_CREATOR(LN_FLOAT32, float32_t, Float32, float64)
+LN_NEW_DTYPE_CREATOR(LN_FLOAT32, float32_t, Float32, float32)
 LN_NEW_DTYPE_CREATOR(LN_FLOAT64, float64_t, Float64, float64)
-
+   
 LN_NEW_DTYPE_CREATOR(LN_COMPLEX64, complex64_t, Complex64, complex64)
 LN_NEW_DTYPE_CREATOR(LN_COMPLEX128, complex128_t, Complex128, complex128)
 

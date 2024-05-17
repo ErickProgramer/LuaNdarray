@@ -6,6 +6,7 @@ local rawset=rawset
 local rawget=rawget
 local newproxy=newproxy
 local table=table
+local math=math
 
 local ffi=require"ffi"
 local newDType, dtype_meta = require("luandarray.luajit.dtype").newDType, require("luandarray.luajit.dtype").dtype_meta
@@ -59,8 +60,19 @@ local function LNError_Raise(level)
     error(LNError_Get(), (level or 1)+1)
 end
 
+---@param n integer
+---@return ffi.cdata*
+local function alloc(tpy, n)
+    local block = lnc.LNMem_alloc(n * ffi.sizeof(tpy))
+    if LNError_Ocurred() then
+        LNError_Raise(2)
+    end
+
+    return ffi.cast(tpy.."*", block)
+end
+
 local function string_to_charvec(str)
-    local vec=ffi.new("char[?]", #str+1)
+    local vec = alloc("char", #str+1)
     for i = 1, #str do
         vec[i-1]=string.byte(str:sub(i,i))
     end
@@ -83,6 +95,30 @@ local ln={
     PATCH=0
 }
 
+ln.I = I
+
+local IsValidCastRule
+local ConvertRuleNameToID
+do
+    local cast_rules = {"safe", "unsafe"}
+    local cast_rules_id = {
+        safe = 1,
+        unsafe =0
+    }
+    function IsValidCastRule(v)
+        for i = 1, #cast_rules do
+            if v == cast_rules[i] then
+                return true
+            end
+        end
+        return false
+    end
+
+    function ConvertRuleNameToID(v)
+        return cast_rules_id[v]
+    end
+end
+
 local function assert(v, message, level)
     message = message or "assertion failed!"
     level = level or 1
@@ -92,9 +128,39 @@ local function assert(v, message, level)
     end
 end
 
-local function expected_arg(fname, v, arg, expected)
-    assert(ln.type(arg)=="ndarray", ("bad argument #%d to '%s' (%s expected, got %s)"):format(arg, fname, expected, ln.type(v)), 2)
+local f = string.format
+
+---@param fname string
+---@param v any
+---@param arg integer
+---@param expected table<ln.typef>|ln.typef
+---@param level? integer
+local function expected_arg(fname, v, arg, expected, level)
+    if type(expected) ~= "table" then
+        expected = {expected}
+    end
+    level = level or 3
+    
+    local is_expected = false
+    for i = 1, #expected do
+        if expected[i] == "integer" or expected[i] == "float" then
+            if ln.typef(v) == expected[i] then
+                is_expected = true
+                break
+            end
+        else
+            if ln.type(v) == expected[i] then
+                is_expected = true
+                break
+            end
+        end
+    end
+
+    if not is_expected then
+        error(f("bad argument #%d to '%s' (%s expected, got %s)", arg, fname, table.concat(expected, " or "), ln.type(v)), level)
+    end
 end
+
 
 local LNGetDTypeByID
 do
@@ -160,6 +226,30 @@ function ndarray:__index(idx)
             LNError_Raise()
         end
         return ln.ndarray(res)
+    elseif idx == "strides" then
+        local strides = setmetatable({},{
+            __tostring = function (t)
+                return "Strides({"..table.concat(t, ", ").."})"
+            end
+        })
+
+        for i = 1, self.ndim do
+            strides[i] = tonumber(self.ndarray.strides[i-1])
+        end
+
+        return strides
+    elseif idx == "shape" then
+        local shape = setmetatable({},{
+            __tostring = function (t)
+                return "Shape({" .. table.concat(t, ", ") .. "})"
+            end,
+        })
+
+        for i = 1, self.ndim do
+            shape[i] = tonumber(self.ndarray.dimensions[i-1])
+        end
+
+        return shape
     elseif idx=="ndim" then
         return self.ndarray.nd
     end
@@ -168,7 +258,8 @@ end
 
 ---@overload fun(): ln.Ndarray
 ---@overload fun(ndarray: ln.Ndarray*): ln.Ndarray
----@overload fun(shape: table, dtype: ln.dtype, strides?: table): ln.Ndarray
+---@overload fun(shape: table, dtype: ln.dtype): ln.Ndarray
+---@overload fun(shape: table, dtype: ln.dtype, strides: table): ln.Ndarray
 function ln.ndarray(...)
     local args={...}
 
@@ -178,31 +269,37 @@ function ln.ndarray(...)
 
     local self = ln_setmetatable({}, ndarray)
 
-    if #args == 1 and type(args[1])=="cdata" then
+    if #args == 1 then
         ---@type ln.Ndarray*
         local cndarray = args[1]
+
+        assert(ln.type(cndarray) == "ndarray*", "bad argument #1 to 'ndarray' (expected ndarray pointer, got " .. ln.type(cndarray) .. ")")
 
         self.ndarray=cndarray
 
         self.ndim = tonumber(cndarray.nd)
-        self.shape = {}
-        self.strides = {}
         self.dtype = LNGetDTypeByID(cndarray.dtype.id)
-
-        self.size = 1
-        for i = 1, self.ndim do
-            self.shape[i] = cndarray.dimensions[i-1]
-            self.strides[i] = cndarray.strides[i-1]
-            self.size = self.size * self.shape[i]
-        end
 
         return self
     elseif #args == 2 then
         self.shape, self.dtype = args[1], args[2]
+        assert(ln.typef(self.shape) == "table" or ln.typef(self.shape) == "integer",
+               "bad argument #1 to 'ndarray' (ndarray or integer expected, got " .. ln.typef(self.shape) .. ")", 2)
+        assert(ln.type(self.dtype) == "dtype",
+               "bad argument #2 to 'ndarray' (dtype expected, got " .. ln.type(self.dtype[2])..")", 2)
         self.ndim = #self.shape
 
+        if ln.type(self.shape) == "number" then
+            self.shape = {self.shape}
+        else
+            for i = 1, self.ndim do
+                assert(ln.typef(self.shape[i]) == "integer", "bad argument #2 to 'ndarray' (expected a sequence of integers", 2)
+            end
+        end
+
+
         self.size = 1
-        local shape = ffi.new("size_t[?]", self.ndim)
+        local shape = alloc("size_t", self.ndim)
         for i = 1, self.ndim do
             shape[i-1] = self.shape[i]
             self.size = self.size * shape[i-1]
@@ -216,9 +313,28 @@ function ln.ndarray(...)
         return self
     elseif #args == 3 then
         self.shape, self.dtype, self.strides = args[1], args[2], args[3]
-        self.ndim = #self.shape
+        assert(ln.typef(self.shape) == "table" or ln.typef(self.shape) == "integer",
+               "bad argument #1 to 'ndarray' (ndarray or integer expected, got " .. ln.typef(self.shape) .. ")", 2)
+        assert(ln.type(self.dtype) == "ndarray",
+               "bad argument #2 to 'ndarray' (ndarray expected, got " .. ln.type(self.dtype[2])..")", 2)
+        assert(ln.typef(self.strides) == "ndarray" or ln.typef(self.strides) == "integer",
+              "bad argument #3 to 'ndarray' (ndarray or integer expected, got " .. ln.typef(self.strides) .. ")", 2)
+        assert(#self.shape == #self.strides,
+                "shape (#1) and strides (#3) must has the same length", 2)
 
-        local shape = ffi.new("size_t[?]", self.ndim)
+        self.ndim = #self.shape
+        if ln.type(self.shape) == "number" then
+            self.shape = {self.shape}
+        else
+            for i = 1, self.ndim do
+                assert(ln.typef(self.shape[1]) == "integer",
+                       "bad argument #1 to 'ndarray' (expected a sequence of integers)", 2)
+                assert(ln.typef(self.strides[i]) == "integer",
+                       "bad argument #3 to 'ndarray' (expected a sequence of integers)", 2)
+            end
+        end
+
+        local shape = alloc("size_t", self.ndim)
         for i = 1, self.ndim do
             shape[i-1] = self.shape[i]
         end
@@ -241,8 +357,34 @@ function ln.ndarray(...)
     end
 end
 
-function ndarray:astype(new)
-    local res = lnc.LNArray_CastTo(self.ndarray, new.dtype)
+---@overload fun(self: ln.Ndarray, new: ln.dtype): ln.Ndarray
+---@overload fun(self: ln.Ndarray, new: ln.dtype, casttype: "safe"|"unsafe"): ln.Ndarray
+function ndarray:astype(...)
+    assert(#({...}) >= 2 or #({...}) <= 3,
+          "wrong number of argumnts to 'astype'", 2)
+    assert(ln.type(self) == "ndarray",
+          "bad argument #1 to 'astype' (ndarray expected, got " .. ln.type(self) .. ")", 2)
+
+    local new, casttype = ...
+    assert(ln.type(new) == "dtype",
+          "bad argument #1 to 'astype' (dtype expected, got " .. ln.type(new) .. ")")
+
+    if casttype ~= nil then
+        assert(ln.type(casttype) == "string",
+              "bad argument #2 to 'astype' (string expected, got " .. ln.type(casttype) .. ")",
+                2)
+        assert(IsValidCastRule(casttype),
+               "bad argument #2 to 'astype' (invalid mode)", 2)
+        if casttype == "safe" then
+            casttype = lnc.LNCAST_SAFE
+        else
+            casttype = lnc.LNCAST_UNSAFE
+        end
+    else
+        casttype = lnc.LNCAST_UNSAFE
+    end
+
+    local res = lnc.LNArray_CastTo(self.ndarray, new.dtype, casttype)
     if LNError_Ocurred() then
         LNError_Raise()
     end
@@ -250,47 +392,63 @@ function ndarray:astype(new)
     return ln.ndarray(res)
 end
 
-function ndarray:item(idx)
-    local dtype=self.dtype.name.."_t*"
-    if self.dtype.name=="char" then
-        dtype="char*"
+---@overload fun(self: ln.Ndarray): number?
+---@overload fun(self: ln.Ndarray, idx: integer): number?
+function ndarray:item(...)
+    local args = {...}
+
+    local dtype = self.dtype.name.."_t*"
+    if self.dtype.name == "char" then
+        dtype = "char*"
     end
-    if idx then
-        return tonumber(ffi.cast(dtype, self.ndarray.data)[idx])
-    else
-        assert(self.size==1, "can only convert an array of size 1 to Lua scalar")
+
+    if #args == 0 then
+        assert(self.size==1, "can only convert an array of size 1 to Lua scalar", 2)
         return tonumber(ffi.cast(dtype, self.ndarray.data)[0])
+    elseif #args == 1 then
+        local idx = args[1]
+        assert(ln.typef(idx) == "integer", "bad argument #1 to 'item' (integer expected, got " .. ln.typef(idx) .. ")", 2)
+        return tonumber(ffi.cast(dtype, self.ndarray.data)[idx]) or nil
     end
+
+    error("wrong number of arguments to 'item'", 2)
 end
 
-local function recursive_totable(out,a)
-    if a.ndim==0 then
-        table.insert(out, a:item())
-        return
+do
+    local function recursive_totable(out,a)
+        if a.ndim==0 then
+            table.insert(out, a:item())
+            return
+        end
+        for i, v in ln.iter(a) do
+            recursive_totable(out,v)
+        end
     end
-    for i, v in ln.iter(a) do
-        recursive_totable(out,v)
-    end
-end
 
-function ndarray:totable()
-    local res={}
-    recursive_totable(res,self)
-    return res
+    function ndarray:totable(...)
+        assert(#({...}) == 0, "wrong number of arguments to 'totable'", 2)
+        local res={}
+        recursive_totable(res,self)
+        return res
+    end
 end
 
 function ndarray:__tostring()
     local str_c= lnc.LNArray_toString(self.ndarray,string_to_charvec"array(",string_to_charvec")")
-    local str=""
+    if LNError_Ocurred() then
+        LNError_Raise()
+    end
 
+    local str=""
     local i=0
     while str_c[i]~=0 do
         str=str..string.char(str_c[i])
-        i=i+1
+        i = i + 1
     end
 
     return str
 end
+
 
 function ndarray:__gc()
     lnc.LNArray_Free(self.ndarray)
@@ -303,73 +461,105 @@ end
 
 ndarray.iter = ln.iter
 
----@param data table|number
----@param dtype? ln.dtype
----@return ln.Ndarray
-function ln.array(data, dtype)
-    local flatten_data={}
-    local function flatten(x)
-        if ln.type(x)~="table" or Complex.is(x) then
-            table.insert(flatten_data,x)
+do
+    local function flatten(dst, src, dim)
+        if ln.type(src) ~= "table" then
+            table.insert(dst, src)
             return
         end
 
-        for i = 1, #x do
-            flatten(x[i])
-        end
-    end
-    flatten(data)
-
-    if not dtype then
-        for i = 1, #flatten_data do
-            if Complex.is(flatten_data[i]) then
-                dtype = ln.complex128
-                break
-            elseif isFloat(flatten_data[i]) then
-                dtype = ln.float64
-                break
-            elseif isInteger(flatten_data[i]) then
-                dtype = ln.int64
-                break
-            elseif type(flatten_data[i]) == "boolean" then
-                dtype = ln.bool
-                break
+        for i = 2, #src do
+            if ln.type(src[i]) == "number" or ln.type(src[i]) == "complex" then
+                assert(ln.type(src[1]) == "complex" or ln.type(src[1]) == "number", "inhomogenous shape after " .. dim .. " dimension")
+            else
+                assert(#src[i] == #src[1], "inhomogenous shape after " .. dim .. " dimension")
             end
         end
+
+        for i = 1, #src do
+            flatten(dst, src[i], dim+1)
+        end
     end
 
-    local shape={}
-    while type(data)=="table" and data.__name ~= "complex" do
-        table.insert(shape,#data)
-        data=data[1]
-    end
+    ---@overload fun(data: any, dtype?: ln.dtype): ln.Ndarray
+    function ln.array(...)
+        assert(#({...}) == 2 or #({...}) == 1, "wrong number of arguments to 'array'")
 
-    local dtype_repr = dtype.name .. "_t[?]"
-    local data_c = ffi.new(dtype_repr, #flatten_data)
+        local data, dtype = ...
 
-    if dtype == ln.complex128 or dtype == ln.complex64 then
-        for i = 1, #flatten_data do
-            if Complex.is(flatten_data[i]) then
-                data_c[i-1].realp = flatten_data[i].real
-                data_c[i-1].imagp = flatten_data[i].imag
-            elseif type(flatten_data[i]) == "number" then
-                data_c[i-1].realp = flatten_data[i]
-                data_c[i-1].imagp = 0
+        local data_flat = {}
+        flatten(data_flat, data, 0)
+        local size = #data_flat
+
+        -- select automaticcly
+        if dtype == nil then
+            dtype = ln.float64
+            for i = 1, size do
+                if Complex.is(data[i]) then
+                    dtype = ln.complex128
+                    break
+                elseif isFloat(data[i]) then
+                    dtype = ln.float64
+                    break
+                elseif isInteger(data[i]) then
+                    dtype = ln.int64
+                    break
+                elseif ln.type(data[i]) == "boolean" then
+                    dtype = ln.bool
+                    break
+                end
+            end
+        else
+            assert(ln.type(dtype) == "dtype", "bad argument #2 to 'array (dtype expected, got " .. ln.type(dtype) .. ")", 2)
+        end
+
+
+        local ndim = 0
+        local shape = {}
+        while ln.type(data) == "table" do
+            ndim = ndim + 1
+            shape[ndim] = #data
+            data = data[1]
+        end
+
+        local dims = ffi.cast("size_t*", alloc("size_t", ndim))
+        for i = 1, ndim do
+            dims[i-1] = shape[i]
+        end
+
+        local repr = dtype.name .. "_t"
+        local cdata = alloc(repr, dtype.alignment * #data_flat)
+
+        if dtype == ln.complex128 or dtype == ln.complex64 then
+            for i=1, size do
+                if Complex.is(data_flat[i]) then
+                    cdata[i-1].realp = data_flat[i].real
+                    cdata[i-1].imagp = data_flat[i].imag
+                else
+                    cdata[i-1].realp = data_flat[i]
+                    cdata[i-1].imagp = 0.0
+                end
+            end
+        else
+            for i = 1, size do
+                if Complex.is(data_flat[i]) then
+                    cdata_cast[i-1] = data_flat[i].real
+                else
+                    cdata_cast[i-1] = data_flat[i]
+                end
             end
         end
-    else
-        for i = 1, #flatten_data do
-            data_c[i-1] = flatten_data[i]
-        end
+        local res = lnc.LNArray_New(cdata, dims, nil, ndim, dtype.dtype)
+
+        return ln.ndarray(res)
     end
 
-    local arr = ln.ndarray(shape, dtype)
-    arr.ndarray.data = ffi.cast("char*", data_c)
-
-    return arr
 end
 
-function ln.iter(arr)
+---@overload fun(arr: ln.Ndarray): fun(): integer, ln.Ndarray
+function ln.iter(...)
+    assert(#({...}) == 0, "wrong number of arguments to 'iter'", 2)
+    local arr = ...
     assert(ln.type(arr) == "ndarray", "bad argument #1 to 'iter' (ndarray expected, got "..ln.type(arr)..")", 2)
 
     local i = -1
@@ -383,20 +573,29 @@ function ln.iter(arr)
     end
 end
 
----@param shape? table
----@param dtype? ln.dtype
----@return ln.Ndarray
-function ln.zeros(shape, dtype)
+---@overload fun(shape?: table<integer, integer> | integer, dtype?: ln.dtype): ln.Ndarray
+function ln.zeros(...)
+    assert(#({...}) == 2 or #({...}) == 1, "wrong number of argumentos to 'zeros'", 2)
+
+    local shape, dtype = ...
+    expected_arg("zeros", shape, 1, {"table", "integer", "nil"})
+
+    if dtype ~= nil then
+        expected_arg("zeros", dtype, 2, "dtype")
+    else
+        dtype = ln.float64
+    end
+
     if shape == nil then
         shape = {}
     elseif type(shape) == "number" then
         shape = {shape}
     end
 
-    dtype=dtype or ln.float64
 
-    local dims=ffi.new("size_t[?]", #shape)
+    local dims = alloc("size_t", #shape)
     for i = 1, #shape do
+        assert(isInteger(shape[i]), "bad argument #1 to 'empty' (expected a sequence of integers)", 2)
         dims[i-1] = shape[i]
     end
 
@@ -408,14 +607,28 @@ function ln.zeros(shape, dtype)
     return ln.ndarray(res)
 end
 
----@param shape table
----@param dtype? ln.dtype
----@return table
-function ln.ones(shape, dtype)
-    dtype = dtype or ln.float64
+---@overload fun(shape?: table<integer, integer> | integer, dtype?: ln.dtype): ln.Ndarray
+function ln.ones(...)
+    assert(#({...}) == 2 or #({...}) == 1, "wrong number of arguments to 'ones'", 2)
 
-    local dims=ffi.new("size_t[?]", #shape)
+    local shape, dtype = ...
+    expected_arg("ones", shape, 1, {"table", "integer", "nil"})
+
+    if dtype ~= nil then
+        expected_arg("ones", dtype, 2, "dtype")
+    else
+        dtype = ln.float64
+    end
+
+    if shape == nil then
+        shape = {}
+    elseif type(shape) == "number" then
+        shape = {shape}
+    end
+
+    local dims = alloc("size_t", #shape)
     for i = 1, #shape do
+        assert(isInteger(shape[i]), "bad argument #1 to 'ones' (expected a sequence of integers)", 2)
         dims[i-1] = shape[i]
     end
 
@@ -427,14 +640,31 @@ function ln.ones(shape, dtype)
     return ln.ndarray(res)
 end
 
----@param shape table
----@param dtype? ln.dtype
----@return ln.Ndarray
-function ln.empty(shape, dtype)
-    dtype = dtype or ln.float64
+---@overload fun(shape?: table<integer, integer> | integer, dtype?: ln.dtype): ln.Ndarray
+function ln.empty(...)
+    assert(#({...}) == 2 or #({...}) == 1, "wrong number of arguments to 'empty'", 2)
 
-    local dims=ffi.new("size_t[?]", #shape)
+    local shape, dtype = ...
+    expected_arg("empty", shape, 1, {"table", "integer"})
+    if ln.type(shape) == "number" then
+        shape = {shape}
+    end
+
+    if dtype ~= nil then
+        expected_arg("empty", dtype, 2, "dtype")
+    else
+        dtype = ln.float64
+    end
+
+    if shape == nil then
+        shape = {}
+    elseif type(shape) == "number" then
+        shape = {shape}
+    end
+
+    local dims = alloc("size_t", #shape)
     for i = 1, #shape do
+        assert(isInteger(shape[i]), "bad argument #1 to 'empty' (expected a sequence of integers)", 2)
         dims[i-1] = shape[i]
     end
 
@@ -446,22 +676,22 @@ function ln.empty(shape, dtype)
     return ln.ndarray(res)
 end
 
----@param arr ln.Ndarray
----@param to table
----@return ln.Ndarray
-function ln.broadcast_to(arr, to)
-    ---@type ln.Ndarray*
-    local out = ffi.cast("Ndarray*", lnc.LNMem_alloc(ffi.sizeof("Ndarray")))
-    if LNError_Ocurred() then
-        LNError_Raise()
+---@overload fun(arr: ln.Ndarray, to: table)
+function ln.broadcast_to(...)
+    if #({...}) ~= 2 then
+        error("wrong number of arguments to 'broadcast_to'", 2)
     end
 
-    local to_c = ffi.new("size_t[?]", #to)
+    local arr, to = ...
+    ---@type ln.Ndarray*
+    local out = alloc("Ndarray", 1)
+
+    local to_c = alloc("size_t", #to)
     for i = 1, #to do
         to_c[i-1]=to[i]
     end
 
-    lnc.LNArray_BroadcastTo(out, arr.ndarray, to_c, #to, nil)
+    lnc.LNArray_BroadcastTo(out, arr.ndarray, to_c, #to)
     if LNError_Ocurred() then
         LNError_Raise()
     end
@@ -478,41 +708,15 @@ function ln.add(arr1,arr2)
     return ln.ndarray(res)
 end
 
-function ln.max(arr, axis)
-    local res
-    if axis then
-        res=lnc.LNArray_MaxAxis(arr.ndarray, axis)
-    else
-        res=lnc.LNArray_Max(arr.ndarray)
-    end
-    if LNError_Ocurred() then
-        LNError_Raise()
-    end
-    return ln.ndarray(res)
-end
-
-function ln.promote_types(t1, t2)
-    if(t1.dtype.id > t2.dtype.id) then
-        if (t1.dtype.id>=lnc.LN_UINT8 and t1.dtype.id<=lnc.LN_UINT64) and
-           (t2.dtype.id>=lnc.LN_INT8 and t2.dtype.id<=lnc.LN_INT64)then    
-            return ln.float64
-        end
-        return t1
-    else
-        if (t2.dtype.id>=lnc.LN_UINT8 and t2.dtype.id<=lnc.LN_UINT64) and
-           (t1.dtype.id>=lnc.LN_INT8 and t1.dtype.id<=lnc.LN_INT64)then    
-            return ln.float64
-        end
-        return t2
-    end
-end
-
 do
-    ---@param self ln.dtype
-    ---@param data any
-    ---@return ln.Ndarray
-    local function builder(self, data)
-        return ln.array(data, self)
+    ---@overload fun(self: ln.dtype, data: any)
+    local function builder(...)
+        local dtype, data = ...
+        if #({...}) > 2 then
+            error("wrong number of arguments to '" .. dtype.name.."'")
+        end
+
+        return ln.array(data, dtype)
     end
 
     ln.int8=newDType(lnc.LNInt8, builder)
@@ -535,7 +739,18 @@ do
     ln.bool=newDType(lnc.LNBool, builder)
     ln.char=newDType(lnc.LNChar, builder)
 
-    ln.byte=ln.int8
+    --        aliases        --
+
+    ln.byte     = ln.int8
+    ln.int      = ln.int32
+    ln.complex  = ln.complex128
+    ln.float    = ln.float64
+    ln.double   = ln.float64
+    ln.longlong = ln.int64
+    ln.long     = ln.int32
+    ln.short    = ln.int16
+
+    ---------------------------
 end
 
 do
@@ -544,15 +759,23 @@ do
             x.ndarray and tostring(ffi.typeof(x.ndarray)) == "ctype<struct Ndarray_fields *>" and
             type(x.shape) == "table" and
             type(x.strides) == "table" and
-            type(x.ndim) == "number" and
-            type(x.size) == "number" and
+            isInteger(x.ndim) and
+            isInteger(x.size) and
             getmetatable(x) == ndarray
     end
 
+    local function isNdarrayp(x)
+        return type(x) == "cdata" and tostring(ffi.typeof(x)) == "ctype<struct Ndarray_fields *>"
+    end
 
-    --- Simillar to Lua's standard `type` function but, with `ndarray` and `dtype`
+    local function isDTypep(x)
+        return type(x) == "cdata" and tostring(ffi.typeof(x) == "ctype<const struct LNTypeDescr *>")
+    end
+
+    local _type = type
+    --- Simillar to Lua's standard `type` function but, with `ndarray`, `dtype` and others
     ---@nodiscard
-    ---@alias ln.type "ndarray"|"dtype"|"thread"|"cdata"|"userdata"|"table"|"function"|"string"|"number"|"boolean"|"nil"
+    ---@alias ln.type "ndarray"|"ndarray*"|"dtype"|"dtype*"|"complex"|"thread"|"cdata"|"userdata"|"table"|"function"|"string"|"number"|"boolean"|"nil"
     ---@overload fun(v: any): ln.type
     ---@return ln.type
     function ln.type(...)
@@ -561,13 +784,55 @@ do
         end
 
         local v = ...
-        if isNdarray(v) then
+        if isNdarrayp(v) then
+            return "ndarray*"
+        elseif isNdarray(v) then
             return "ndarray"
+        elseif isDTypep(v) then
+            return "dtype*"
         elseif dtype_meta.is(v) then
             return "dtype"
+        elseif Complex.is(v) then
+            return "complex"
         end
-        return type(v)
+        return _type(v)
     end
+end
+
+---@param x any
+---@alias ln.typef ln.type|"float"|"integer"
+---@return ln.typef
+function ln.typef(x)
+    if isFloat(x) then
+        return "float"
+    elseif isInteger(x) then
+        return "integer"
+    end
+    return ln.type(x)
+end
+
+---@overload fun(from: ln.dtype, to: ln.dtype): boolean
+---@overload fun(from: ln.type, to: ln.dtype, casttype: "safe"|"unsafe")
+function ln.can_cast(...)
+    local from, to, casttype
+
+    local nargs = #({...})
+    if nargs == 2 then
+        from, to = ...
+        casttype = "safe"
+    elseif nargs == 3 then
+        from, to, casttype = ...
+    else
+        error("wrong number of arguments to 'can_cast'", 2)
+    end
+
+    expected_arg("can_cast", from, 1, "dtype")
+    expected_arg("can_cast", to, 1, "dtype")
+    expected_arg("can_cast", casttype, 1, "string")
+
+    assert(IsValidCastRule(casttype), "bad argument #3 to 'can_cast' (invalid option)", 2)
+
+    return lnc.LNArray_CanCast(from.dtype, to.dtype, ConvertRuleNameToID(casttype)) == 1
 end
 
 return ln

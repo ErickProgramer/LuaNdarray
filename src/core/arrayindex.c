@@ -1,16 +1,18 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<stdint.h>
 
 #include "arrayindex.h"
 #include "error.h"
 #include "arrayobj.h"
+#include "arrayaplly.h"
 
 Ndarray *LNArray_Index_(Ndarray *out, Ndarray *arr, long long idx){
     if(arr->nd == 0){
         LNError_setString("attemp to index a 0-dimensional array");
         return NULL;
-    } else if(idx >= LNArray_LEN(arr) || -idx >= LNArray_LEN(arr)){
-        LNError_setFString("position %lld out of bounds", idx);
+    } else if(idx >= LNArray_LEN(arr) || -(idx + 1) >= LNArray_LEN(arr)){
+        LNError_setFString("index %lld is out of bounds for axis 0 with size %zu", idx, arr->dimensions[0]);
         return NULL;
     }
 
@@ -53,4 +55,15 @@ void *LNArray_MultiIndexItem(Ndarray *arr, long long *idxs){
         pos+=idxs[i]*arr->strides[i];
 
     return (void*)(arr->data + pos);
+}
+
+void LNArray_MapDim(Ndarray *arr, long long dim){
+    long long i;
+    LN_ARRAY_APPLY_D(arr, dim,
+        printf("{");
+        for(i = 0; i < __axis_size; i++){
+            printf("%d, ", ((char*)item)[i]);
+        }
+        printf("}\n");
+    );
 }
