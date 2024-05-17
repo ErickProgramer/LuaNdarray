@@ -4,18 +4,18 @@
 #define LN_VECTOR_APPLY_CONTIG(VEC, DIMS, STRIDES, NDIM, CODE)\
     do{\
         long long __i,__j;\
-        long long *INDEX_SEQ=(long long*)LNMem_alloc(NDIM*sizeof(size_t));\
-        for(__i=0; __i < NDIM; __i++)\
+        long long *INDEX_SEQ=(long long*)LNMem_alloc((NDIM)*sizeof(long long));\
+        for(__i=0; __i < (NDIM); __i++)\
             INDEX_SEQ[__i]=0;\
         \
         while(1){\
             void *item = (void*)(VEC);\
             for(__i=0; __i<(NDIM); __i++){\
-                item = (char*)item + (INDEX_SEQ[__i]*((STRIDES)[__i]));\
+                item = (void*)((char*)item + (INDEX_SEQ[__i]*((STRIDES)[__i])));\
             }\
             CODE\
             int finish=true;\
-            for(__i=0; __i < NDIM; __i++){\
+            for(__i=0; __i < (NDIM); __i++){\
                 if(((DIMS)[__i])-1!=INDEX_SEQ[__i]){\
                     finish=false;\
                     break;\
@@ -26,30 +26,79 @@
             INDEX_SEQ[(NDIM)-1]++;\
             for(__i=(NDIM)-1; __i>0; __i--){\
                 if(INDEX_SEQ[__i]>=((DIMS)[__i])){\
-                    for(__j=__i; __j > 0; __j++)\
+                    for(__j=__i; __j >= 0; __j--){\
                         INDEX_SEQ[__j]++;\
+                    }\
                     INDEX_SEQ[__i] = 0;\
                 }\
             }\
         }\
     }while(0)
 
+
 #define LN_VECTOR_APPLY_D(VEC, STRIDES, DIMS, DIM, NDIM, CODE)\
-    long long i;\
-    for(i=0; i < ((DIMS)[DIM])+1; i++){\
-        void *axis = (void*)((char*)(VEC) + (i * ((STRIDES)[i])));\
-        CODE\
-    }\
+    do{\
+        long __i, __j;\
+        size_t __axis_size = 1;\
+        size_t __axis_n = 1;\
+        for(__i = 0; __i < (DIM)+1; __i++)\
+            __axis_n *= (DIMS)[__i];\
+        for(__i = (DIM)+1; __i < (NDIM); __i++)\
+            __axis_size *= (DIMS)[__i];\
+        void *item = ((void*)VEC);\
+        for(__i = 0; __i < __axis_n; __i++){\
+            CODE\
+            item = (void*)((char*)item + (STRIDES)[DIM]);\
+        }\
+    }while(0)
+
+//     do{\
+//         long long __i,__j;\
+//         long long *INDEX_SEQ=(long long*)LNMem_alloc(((DIM)+1)*sizeof(long long));\
+//         for(__i=0; __i < (DIM); __i++){\
+//             INDEX_SEQ[__i]=0;\
+//         }\
+//         size_t __axis_size = 1;\
+//         for(__i=(DIM)+1; __i < (NDIM); __i++){\
+//             __axis_size *= (DIMS)[__i];\
+//         }\
+// \
+//         while(1){\
+//             void *item = (void*)(VEC);\
+//             for(__i=0; __i<(DIM); __i++){\
+//                 item = (void*)((char*)item + (INDEX_SEQ[__i]*((STRIDES)[__i])));\
+//             }\
+//             CODE\
+//             int finish=true;\
+//             for(__i=0; __i < (DIM)+1; __i++){\
+//                 if(((DIMS)[__i])-1!=INDEX_SEQ[__i]){\
+//                     finish=false;\
+//                     break;\
+//                 }\
+//             }\
+//             if(finish)\
+//                 break;\
+//             INDEX_SEQ[(DIM)]++;\
+//             for(__i=(DIM); __i>0; __i--){\
+//                 if(INDEX_SEQ[__i]>((DIMS)[__i])){\
+//                     for(__j=__i; __j >= 0; __j--){\
+//                         INDEX_SEQ[__j]++;\
+//                     }\
+//                     INDEX_SEQ[__i] = 0;\
+//                 }\
+//             }\
+//         }\
+//     }while(0)
 
 #define LN_ARRAY_APPLY_CONTIG(ARRAY, CODE)\
     LN_VECTOR_APPLY_CONTIG((ARRAY)->data, (ARRAY)->dimensions, (ARRAY)->strides, (ARRAY)->nd, CODE)\
 
 #define LN_ARRAY_APPLY_D(ARRAY, DIM, CODE)\
-    LN_VECTOR_APPLY_D((ARRAY)->data, (ARRAY)->strides, DIM, CODE)\
+    LN_VECTOR_APPLY_D((ARRAY)->data, (ARRAY)->strides, (ARRAY)->dimensions, DIM, (ARRAY)->nd, CODE)\
 
 #define LN_VECTOR_APPLY2_CONTIG(VEC1, VEC2, DIMS1, DIMS2, STRIDES1, STRIDES2, NDIM, CODE)\
     long long __i,__j;\
-    long long *INDEX_SEQ=(long long*)LNMem_alloc((NDIM)*sizeof(size_t));\
+    long long *INDEX_SEQ=(long long*)LNMem_alloc((NDIM)*sizeof(long long));\
     for(__i=0; __i < (NDIM); __i++)\
         INDEX_SEQ[__i]=0;\
 \

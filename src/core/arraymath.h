@@ -17,7 +17,7 @@
 #undef LNMath_
 #undef LNRealDType
 
-void LNArray_BroadcastTo(Ndarray *out, Ndarray*arr, size_t *to, size_t nd, char *err_msg);
+void LNArray_BroadcastTo(Ndarray *out, Ndarray*arr, size_t *to, size_t nd);
 
 Ndarray*LNArray_Add(Ndarray*arr1, Ndarray*arr2);
 
