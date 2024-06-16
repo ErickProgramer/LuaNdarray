@@ -6,6 +6,11 @@
 #include<stdlib.h>
 #include<math.h>
 
+#define LN_DEFAULT_VECTOR_OP(op)\
+    for(i = 0; i < n; i++){\
+        z[i] = a[i] op b[i];\
+    }
+
 #if defined(LN_REAL_IS_COMPLEX)
 
 real *LNVector_(Fill)(real *v, real fill_value, size_t n){
@@ -33,29 +38,7 @@ real *LNVector_(Sub)(real *z, const real *a, const real *b, size_t n){
     }
     return z;
 }
-/*
-__mul=function(c1,c2)
-		local r1,i1,r2,i2=re(c1),im(c1),re(c2),im(c2)
-		return complex(r1*r2-i1*i2,r1*i2+r2*i1)
-	end,
-	__div=function(c1,c2)
-		local r1,i1,r2,i2=re(c1),im(c1),re(c2),im(c2)
-		local rsq=r2^2+i2^2
-		return complex((r1*r2+i1*i2)/rsq,(r2*i1-r1*i2)/rsq)
-	end,
-	__pow=function(c1,c2)--Aww ye
-		local r1,i1,r2,i2=re(c1),im(c1),re(c2),im(c2)
-		local rsq=r1^2+i1^2
-		if rsq==0 then--Things work better like this.
-			if r2==0 and i2==0 then
-				return 1
-			end
-			return 0
-		end
-		local phi=atan2(i1,r1)
-		return rect(rsq^(r2/2)*exp(-i2*phi),i2*log(rsq)/2+r2*phi)
-	end,
-*/
+
 real *LNVector_(Mul)(real *z, const real *a, const real *b, size_t n){
     size_t i;
     for(i=0;i<n;i++){
@@ -94,101 +77,113 @@ real *LNVector_(Range)(real *z, double start, double stop, double step){
 
 #else
 
-#if defined(__AVX2__)
-#include"../simd/AVX2.h"
+#if defined(__AVX512F__)
+#include"../simd/AVX512.h"
+#include"../simd/AVX.h"
+#include"../simd/SSE.h"
 #elif defined(__AVX__)
 #include"../simd/AVX.h"
+#include"../simd/SSE.h"
 #elif defined(__SSE__)
 #include"../simd/SSE.h"
 #endif
 
 real *LNVector_(Fill)(real *v, real fill_value, size_t n){
-    #if defined(__AVX2__)
-    LNVector_(Fill_AVX2)(v,fill_value,n);
-    #elif defined(__AVX__)
-    LNVector_(Fill_AVX)(v,fill_value,n);
-    #elif defined(__SSE__)
-    LNVector_(Fill_SSE)(v,fill_value,n);
+    #if defined(__AVX512F__) && defined(LN_REAL_IS_FLOAT)
+        LNVector_(Fill_AVX512)(v, fill_value, n);
+    #elif defined(__AVX__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Fill_AVX)(v, fill_value, n);
+    #elif defined(__AVX2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Fill_AVX)(v, fill_value, n);
+    #elif defined(__SSE__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Fill_SSE)(v, fill_value, n);
+    #elif defined(__SSE2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Fill_SSE)(v, fill_value, n);
     #else
-    size_t i;
-    for(i=0;i<n;i++){
-        z[i]=fill_value;
-    }
+        size_t i;
+        for(i = 0; i < n; i++){
+            v[i] = fill_value;
+        }
     #endif
+    return v;
 }
 
 real *LNVector_(Add)(real *z, const real *a, const real *b, size_t n){
-    #if defined(__AVX2__)
-    LNVector_(Add_AVX2)(z,a,b,n);
-    #elif defined(__AVX__)
-    LNVector_(Add_AVX)(z,a,b,n);
-    #elif defined(__SSE__)
-    LNVector_(Add_SSE)(z,a,b,n);
+    #if defined(__AVX512F__) && defined(LN_REAL_IS_FLOAT)
+        LNVector_(Add_AVX512)(z, a, b, n);
+    #elif defined(__AVX__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Add_AVX)(z, a, b, n);
+    #elif defined(__AVX2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Add_AVX)(z, a, b, n);
+    #elif defined(__SSE__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Add_SSE)(z, a, b, n);
+    #elif defined(__SSE2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Add_SSE)(z, a, b, n);
     #else
-    size_t i;
-    for(i=0;i<n;i++){
-        z[i]=a[i]+b[i];
-    }
+        size_t i;
+        for(i = 0; i < n; i++){
+            z[i] = a[i] + b[i];
+        }
     #endif
+    return z;
 }
 
 real *LNVector_(Sub)(real *z, const real *a, const real *b, size_t n){
-    #if defined(__AVX2__)
-    LNVector_(Sub_AVX2)(z,a,b,n);
-    #elif defined(__AVX__)
-    LNVector_(Sub_AVX)(z,a,b,n);
-    #elif defined(__SSE__)
-    LNVector_(Sub_SSE)(z,a,b,n);
+    #if defined(__AVX512F__) && defined(LN_REAL_IS_FLOAT)
+        LNVector_(Sub_AVX512)(z, a, b, n);
+    #elif defined(__AVX__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Sub_AVX)(z, a, b, n);
+    #elif defined(__AVX2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Sub_AVX)(z, a, b, n);
+    #elif defined(__SSE__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Sub_SSE)(z, a, b, n);
+    #elif defined(__SSE2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Sub_SSE)(z, a, b, n);
     #else
-    size_t i;
-    for(i=0;i<n;i++){
-        z[i]=a[i]-b[i];
-    }
+        size_t i;
+        for(i = 0; i < n; i++){
+            z[i] = a[i] - b[i];
+        }
     #endif
     return z;
 }
 
 real *LNVector_(Mul)(real *z, const real *a, const real *b, size_t n){
-    #if defined(LN_REAL_IS_INT8) || defined(LN_REAL_IS_INT16)
-    size_t i;
-    for(i=0;i<n;i++){
-        z[i]=a[i]*b[i];
-    }
+    #if defined(__AVX512F__) && defined(LN_REAL_IS_FLOAT)
+        LNVector_(Mul_AVX512)(z, a, b, n);
+    #elif defined(__AVX__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Mul_AVX)(z, a, b, n);
+    #elif defined(__AVX2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Mul_AVX)(z, a, b, n);
+    #elif defined(__SSE__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Mul_SSE)(z, a, b, n);
+    #elif defined(__SSE2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Mul_SSE)(z, a, b, n);
     #else
-    #if defined(__AVX2__)
-    LNVector_(Mul_AVX2)(z,a,b,n);
-    #elif defined(__AVX__)
-    LNVector_(Mul_AVX)(z,a,b,n);
-    #elif defined(__SSE__)
-    LNVector_(Mul_SSE)(z,a,b,n);
-    #else
-    size_t i;
-    for(i=0;i<n;i++){
-        z[i]=a[i]*b[i];
-    }
+        size_t i;
+        for(i = 0; i < n; i++){
+            z[i] = a[i] * b[i];
+        }
     #endif
-    #endif
+    return z;
 }
 
 real *LNVector_(Div)(real *z, const real *a, const real *b, size_t n){
-    #if defined(LN_REAL_IS_INT8) || defined(LN_REAL_IS_INT16)
-    size_t i;
-    for(i=0;i<n;i++){
-        z[i]=a[i]*b[i];
-    }
+    #if defined(__AVX512F__) && defined(LN_REAL_IS_FLOAT)
+        LNVector_(Div_AVX512)(z, a, b, n);
+    #elif defined(__AVX__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Div_AVX)(z, a, b, n);
+    #elif defined(__AVX2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Div_AVX)(z, a, b, n);
+    #elif defined(__SSE__) && defined(LN_REAL_IS_FLOAT32)
+        LNVector_(Div_SSE)(z, a, b, n);
+    #elif defined(__SSE2__) && defined(LN_REAL_IS_FLOAT64)
+        LNVector_(Div_SSE)(z, a, b, n);
     #else
-    #if defined(__AVX2__)
-    LNVector_(Div_AVX2)(z,a,b,n);
-    #elif defined(__AVX__)
-    LNVector_(Div_AVX)(z,a,b,n);
-    #elif defined(__SSE__)
-    LNVector_(Div_SSE)(z,a,b,n);
-    #else
-    size_t i;
-    for(i=0;i<n;i++){
-        z[i]=a[i]/b[i];
-    }
-    #endif
+        size_t i;
+        for(i = 0; i < n; i++){
+            z[i] = a[i] / b[i];
+        }
     #endif
     return z;
 }
