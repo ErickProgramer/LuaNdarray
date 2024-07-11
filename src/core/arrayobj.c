@@ -3,9 +3,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include <lua.h>
-#include <lauxlib.h>
-
 #include "arraytypes.h"
 #include "error.h"
 #include "arrayobj.h"
