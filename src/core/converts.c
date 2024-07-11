@@ -75,5 +75,5 @@ char *LNArray_toString(Ndarray *arr, const char *prefix, const char *sufix){
 }
 
 void LNArray_Print(Ndarray *arr, const char *prefix, const char *sufix){
-    printf(LNArray_toString(arr, prefix, sufix));
+    printf("%s", LNArray_toString(arr, prefix, sufix));
 }
