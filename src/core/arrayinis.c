@@ -3,6 +3,7 @@
 #include<string.h>
 #include<math.h>
 
+#include "arraydtype.h"
 #include "error.h"
 #include "arrayobj.h"
 #include "arrayinis.h"
@@ -213,7 +214,7 @@ Ndarray *LNArray_Range(double start, double stop, double step, const LNTypeDescr
         case LN_COMPLEX64:
             LNComplex64Vector_Range((complex64_t*)arr->data, start, stop, step);
             break;
-        
+
         case LN_COMPLEX128:
             LNComplex128Vector_Range((complex128_t*)arr->data, start, stop, step);
             break;
