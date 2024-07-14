@@ -2,6 +2,7 @@
 #include<stdlib.h>
 
 #include"arrayobj.h"
+#include"arraydtype.h"
 #include"arraymath.h"
 #include"arrayindex.h"
 #include"arrayaplly.h"
