@@ -17,10 +17,9 @@ local function try_paths(...)
     return nil
 end
 
---[[local lnc = try_paths("luandarray/luajit/bin/core.so",
+local lnc = try_paths("luandarray/luajit/bin/core.so",
                       "luandarray/luajit/bin/core.dll",
-                      "luandarray/luajit/bin/core")]]
-local lnc = ffi.load("luandarray/luajit/bin/core")
+                      "luandarray/luajit/bin/core")
 
 local dtype_meta={}
 dtype_meta.__name = "dtype"
