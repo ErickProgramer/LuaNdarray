@@ -516,16 +516,16 @@ do
         if dtype == nil then
             dtype = ln.float64
             for i = 1, size do
-                if Complex.is(data[i]) then
+                if Complex.is(data_flat[i]) then
                     dtype = ln.complex128
                     break
-                elseif isFloat(data[i]) then
+                elseif isFloat(data_flat[i]) then
                     dtype = ln.float64
                     break
-                elseif isInteger(data[i]) then
+                elseif isInteger(data_flat[i]) then
                     dtype = ln.int64
                     break
-                elseif ln.type(data[i]) == "boolean" then
+                elseif ln.type(data_flat[i]) == "boolean" then
                     dtype = ln.bool
                     break
                 end
