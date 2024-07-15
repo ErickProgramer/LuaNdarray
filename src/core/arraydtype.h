@@ -13,6 +13,7 @@ void LNDType_Init();
 
 LNTypeDescr *LNDType_New(LNDTypes id, CastFunc castfunc, LNAxisOperator max_axis_func, LNAxisOperator min_axis_func, LNAxisOperator sum_axis_func, LNMapOperator max_func, LNMapOperator min_func, LNMapOperator sum_func, char *name, char *fmt, size_t alignment, size_t itemsize);
 LNTypeDescr *LNDType_NewFromID(LNDTypes id);
+const LNTypeDescr *LNDType_GetFromID(LNDTypes id);
 LNTypeDescr *LNDType_Copy(LNTypeDescr *dst, const LNTypeDescr *src);
 bool_t LNDType_CastIsSafe(const LNTypeDescr *orig_type, const LNTypeDescr *new_type);
 
@@ -29,25 +30,6 @@ void LNDType_Free(LNTypeDescr *dtype);
 
 #define LNDType_GetInt(id1,id2) LNDType_IsInt(id1) ? (id1) : (id2)
 
-
-const LNTypeDescr *LNInt8;
-const LNTypeDescr *LNInt16;
-const LNTypeDescr *LNInt32;
-const LNTypeDescr *LNInt64;
-
-const LNTypeDescr *LNUInt8;
-const LNTypeDescr *LNUInt16;
-const LNTypeDescr *LNUInt32;
-const LNTypeDescr *LNUInt64;
-
-const LNTypeDescr *LNFloat32;
-const LNTypeDescr *LNFloat64;
-
-const LNTypeDescr *LNComplex64;
-const LNTypeDescr *LNComplex128;
-
-const LNTypeDescr *LNChar;
-const LNTypeDescr *LNBool;
 
 // #define LNDType_NewInt8() LNDType_New(LN_INT8, "int8", "d", sizeof(int8_t), sizeof(int8_t))
 // #define LNDType_NewInt16() LNDType_New(LN_INT16, "int16", "d", sizeof(int16_t), sizeof(int16_t))

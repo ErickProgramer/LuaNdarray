@@ -5,6 +5,8 @@
 
 #include "error.h"
 
+static LNError_t LNExc_Error;
+
 void LNError_Init(){
     #ifdef LUA
     LNExc_Error.L = NULL;

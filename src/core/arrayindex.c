@@ -7,6 +7,16 @@
 #include "arrayobj.h"
 #include "arrayaplly.h"
 
+static int INDEX_BASE;
+
+int LNGetIndexStart(){
+    return INDEX_BASE;
+}
+
+void LNIndexStartZero(bool_t s){
+    INDEX_BASE = s == 0;
+}
+
 Ndarray *LNArray_Index_(Ndarray *out, Ndarray *arr, long long idx){
     if(arr->nd == 0){
         LNError_setString("attemp to index a 0-dimensional array");
