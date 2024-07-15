@@ -756,8 +756,8 @@ do
     ln.complex64  = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
     ln.complex128 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
 
-    ln.bool = newDType(lnc.LNBool, builder)
-    ln.char = newDType(lnc.LNChar, builder)
+    ln.bool = newDType(lnc.LNDType_GetFromID(lnc.LN_BOOL), builder)
+    ln.char = newDType(lnc.LNDType_GetFromID(lnc.LN_CHAR), builder)
 
     --        aliases        --
     ln.byte     = ln.int8
