@@ -564,9 +564,9 @@ do
         else
             for i = 1, size do
                 if Complex.is(data_flat[i]) then
-                    cdata_cast[i-1] = data_flat[i].real
+                    cdata[i-1] = data_flat[i].real
                 else
-                    cdata_cast[i-1] = data_flat[i]
+                    cdata[i-1] = data_flat[i]
                 end
             end
         end
