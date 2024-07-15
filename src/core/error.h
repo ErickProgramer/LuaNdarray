@@ -18,8 +18,6 @@ typedef struct LNError_t{
     #endif
 } LNError_t;
 
-LNError_t LNExc_Error;
-
 #define LNError_Check()\
     do {\
         if(LNError_Ocurred()){\

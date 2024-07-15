@@ -1,6 +1,8 @@
 #ifndef LUANDARRAY_SRC_CORE_ARRAYTYPES_H_
 #define LUANDARRAY_SRC_CORE_ARRAYTYPES_H_
 
+#include<stdio.h>
+#include<stdlib.h>
 
 typedef float float32_t;
 typedef double float64_t;

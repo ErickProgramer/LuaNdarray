@@ -130,6 +130,7 @@ char *LNError_Get();
 void *LNMem_alloc(size_t bytes);
 
 void LNDType_Init();
+const LNTypeDescr *LNDType_GetFromID(LNDTypes id);
 void LNDType_Free(LNTypeDescr *dtype);
 
 const LNTypeDescr *LNDType_Promote(const LNTypeDescr *t1, const LNTypeDescr *t2);

@@ -3,6 +3,7 @@
 #else
 
 #include "../arrayobj.h"
+#include "../arraydtype.h"
 #include "../arrayaplly.h"
 #include "../utils.h"
 
@@ -26,7 +27,7 @@ Ndarray *LNMath_(SumAxis)(Ndarray *arr, long long axis){
     if(!res->data)
         return NULL;
     
-    res->dtype = LNRealDType;
+    res->dtype = RealDType;
 
     memcpy(res->dimensions, arr->dimensions, sizeof(size_t) * axis);
     memcpy(res->dimensions+axis, arr->dimensions+axis, sizeof(size_t) * (arr->nd-axis));
@@ -76,7 +77,7 @@ Ndarray *LNMath_(MaxAxis)(Ndarray *arr, long long axis){
     if(!res->data)
         return NULL;
     
-    res->dtype = LNRealDType;
+    res->dtype = RealDType;
 
     memcpy(res->dimensions, arr->dimensions, sizeof(size_t) * axis);
     memcpy(res->dimensions+axis, arr->dimensions+axis, sizeof(size_t) * (arr->nd-axis));
@@ -130,7 +131,7 @@ Ndarray *LNMath_(MinAxis)(Ndarray *arr, long long axis){
     if(!res->data)
         return NULL;
     
-    res->dtype = LNRealDType;
+    res->dtype = RealDType;
 
     memcpy(res->dimensions, arr->dimensions, sizeof(size_t) * axis);
     memcpy(res->dimensions+axis, arr->dimensions+axis, sizeof(size_t) * (arr->nd-axis));
@@ -183,7 +184,7 @@ Ndarray *LNMath_(Max)(Ndarray *arr){
     res->size = 1;
     res->strides = NULL;
     res->dimensions = NULL;
-    res->dtype = LNRealDType;
+    res->dtype = RealDType;
 
     LN_ARRAY_APPLY_CONTIG(arr,
         #if defined(LN_REAL_IS_COMPLEX)
@@ -215,7 +216,7 @@ Ndarray *LNMath_(Min)(Ndarray *arr){
     res->size = 1;
     res->strides = NULL;
     res->dimensions = NULL;
-    res->dtype = LNRealDType;
+    res->dtype = RealDType;
 
     real max_v = *(real*)arr->data;
     LN_ARRAY_APPLY_CONTIG(arr,
@@ -246,7 +247,7 @@ Ndarray *LNMath_(Sum)(Ndarray *arr){
     res->size = 1;
     res->strides = NULL;
     res->dimensions = NULL;
-    res->dtype = LNRealDType;
+    res->dtype = RealDType;
 
     #if defined(LN_REAL_IS_COMPLEX)
     *(real*)res->data = (real){.realp=0, .imagp=0};

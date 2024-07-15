@@ -153,6 +153,25 @@ LNTypeDescr *LNDType_New(LNDTypes id,
     return dtype;
 }
 
+static const LNTypeDescr *LNInt8;
+static const LNTypeDescr *LNInt16;
+static const LNTypeDescr *LNInt32;
+static const LNTypeDescr *LNInt64;
+
+static const LNTypeDescr *LNUInt8;
+static const LNTypeDescr *LNUInt16;
+static const LNTypeDescr *LNUInt32;
+static const LNTypeDescr *LNUInt64;
+
+static const LNTypeDescr *LNFloat32;
+static const LNTypeDescr *LNFloat64;
+
+static const LNTypeDescr *LNComplex64;
+static const LNTypeDescr *LNComplex128;
+
+static const LNTypeDescr *LNChar;
+static const LNTypeDescr *LNBool;
+
 void LNDType_Init(){
     LNInt8 = LNDType_NewFromID(LN_INT8);
     LNInt16 = LNDType_NewFromID(LN_INT16);

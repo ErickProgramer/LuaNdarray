@@ -1,9 +1,25 @@
 local setmetatable, getmetatable = setmetatable, getmetatable
-local type = type
+local type  = type
+local pcall = pcall
 
 local ffi=require"ffi"
 
-local lnc=ffi.load("luandarray/luajit/core")
+local function try_paths(...)
+    local paths = {...}
+
+    for i, path in ipairs(paths) do
+        local ok, r = pcall(ffi.load, path)
+        if ok then
+            return r
+        end
+    end
+
+    return nil
+end
+
+local lnc = try_paths("luandarray/luajit/bin/core.so",
+                      "luandarray/luajit/bin/core.dll",
+                      "luandarray/luajit/bin/core")
 
 local dtype_meta={}
 dtype_meta.__name = "dtype"

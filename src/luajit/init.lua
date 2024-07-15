@@ -1,21 +1,42 @@
 -- imports --
-local type=type
-local setmetatable=setmetatable
-local getmetatable=getmetatable
-local rawset=rawset
-local rawget=rawget
-local newproxy=newproxy
-local table=table
-local math=math
+local type         = type
+local setmetatable = setmetatable
+local getmetatable = getmetatable
+local rawset       = rawset
+local rawget       = rawget
+local newproxy     = newproxy
+local table        = table
+local math         = math
+local pcall        = pcall
 
 local ffi=require"ffi"
 local newDType, dtype_meta = require("luandarray.luajit.dtype").newDType, require("luandarray.luajit.dtype").dtype_meta
 local Complex = require("luandarray.luajit.complex")
 
+local function try_paths(...)
+    local paths = {...}
+
+    for i, path in ipairs(paths) do
+        local ok, r = pcall(ffi.load, path)
+        if ok then
+            return r
+        end
+    end
+
+    return nil
+end
+
 -- load definitions.
 require "luandarray.luajit.defs"
 
-local lnc=ffi.load("luandarray/luajit/core")
+local lnc = try_paths("luandarray/luajit/bin/core.so",
+                      "luandarray/luajit/bin/core.dll",
+                      "luandarray/luajit/bin/core")
+
+if not lnc then
+    error("luandarray core file not found")
+end
+
 lnc.LNDType_Init()
 
 local proxy_key = rawget(_G, "__GC_PROXY") or "__gc_proxy"
@@ -495,16 +516,16 @@ do
         if dtype == nil then
             dtype = ln.float64
             for i = 1, size do
-                if Complex.is(data[i]) then
+                if Complex.is(data_flat[i]) then
                     dtype = ln.complex128
                     break
-                elseif isFloat(data[i]) then
+                elseif isFloat(data_flat[i]) then
                     dtype = ln.float64
                     break
-                elseif isInteger(data[i]) then
+                elseif isInteger(data_flat[i]) then
                     dtype = ln.int64
                     break
-                elseif ln.type(data[i]) == "boolean" then
+                elseif ln.type(data_flat[i]) == "boolean" then
                     dtype = ln.bool
                     break
                 end
@@ -543,9 +564,9 @@ do
         else
             for i = 1, size do
                 if Complex.is(data_flat[i]) then
-                    cdata_cast[i-1] = data_flat[i].real
+                    cdata[i-1] = data_flat[i].real
                 else
-                    cdata_cast[i-1] = data_flat[i]
+                    cdata[i-1] = data_flat[i]
                 end
             end
         end
@@ -719,37 +740,34 @@ do
         return ln.array(data, dtype)
     end
 
-    ln.int8=newDType(lnc.LNInt8, builder)
+    ln.int8  = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
+    ln.int16 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT16), builder)
+    ln.int32 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT32), builder)
+    ln.int64 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT64), builder)
 
-    ln.int16=newDType(lnc.LNInt16, builder)
-    ln.int32=newDType(lnc.LNInt32, builder)
-    ln.int64=newDType(lnc.LNInt64, builder)
+    ln.uint8  = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
+    ln.uint16 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
+    ln.uint32 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
+    ln.uint64 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
 
-    ln.uint8=newDType(lnc.LNUInt8, builder)
-    ln.uint16=newDType(lnc.LNUInt16, builder)
-    ln.uint32=newDType(lnc.LNUInt32, builder)
-    ln.uint64=newDType(lnc.LNUInt64, builder)
+    ln.float32 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
+    ln.float64 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
 
-    ln.float32=newDType(lnc.LNFloat32, builder)
-    ln.float64=newDType(lnc.LNFloat64, builder)
+    ln.complex64  = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
+    ln.complex128 = newDType(lnc.LNDType_GetFromID(lnc.LN_INT8), builder)
 
-    ln.complex64=newDType(lnc.LNComplex64, builder)
-    ln.complex128=newDType(lnc.LNComplex128, builder)
-
-    ln.bool=newDType(lnc.LNBool, builder)
-    ln.char=newDType(lnc.LNChar, builder)
+    ln.bool = newDType(lnc.LNDType_GetFromID(lnc.LN_BOOL), builder)
+    ln.char = newDType(lnc.LNDType_GetFromID(lnc.LN_CHAR), builder)
 
     --        aliases        --
-
     ln.byte     = ln.int8
     ln.int      = ln.int32
     ln.complex  = ln.complex128
-    ln.float    = ln.float64
+    ln.float    = ln.float32
     ln.double   = ln.float64
     ln.longlong = ln.int64
     ln.long     = ln.int32
     ln.short    = ln.int16
-
     ---------------------------
 end
 

@@ -6,10 +6,8 @@
 
 #include "arrayobj.h"
 
-int INDEX_BASE;
-
-#define LNGetIndexStart() (INDEX_BASE)
-#define LNIndexStartZero(s) INDEX_BASE = (s) == 0
+int LNGetIndexStart();
+void LNIndexStartZero(bool_t s);
 
 Ndarray *LNArray_Index(Ndarray *arr, long long idx);
 Ndarray *LNArray_Index_(Ndarray *out, Ndarray *arr, long long idx);
