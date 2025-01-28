@@ -18,17 +18,18 @@ void LNIndexStartZero(bool_t s){
 }
 
 Ndarray *LNArray_Index_(Ndarray *out, Ndarray *arr, long long idx){
+    if(idx < 0){
+        idx=arr->dimensions[0]+idx;
+    }
+
     if(arr->nd == 0){
         LNError_setString("attemp to index a 0-dimensional array");
         return NULL;
-    } else if(idx >= LNArray_LEN(arr) || -(idx + 1) >= LNArray_LEN(arr)){
+    } else if(idx >= LNArray_LEN(arr)){
         LNError_setFString("index %lld is out of bounds for axis 0 with size %zu", idx, arr->dimensions[0]);
         return NULL;
     }
 
-    if(idx < 0){
-        idx=arr->dimensions[0]+idx;
-    }
 
     out->dtype = arr->dtype;
     out->size = arr->size / arr->dimensions[0];

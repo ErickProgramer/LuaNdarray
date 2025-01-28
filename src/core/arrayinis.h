@@ -7,9 +7,16 @@
 #include "arraydtype.h"
 #include "arrayobj.h"
 
+Ndarray *LNArray_Empty_(Ndarray *out, const size_t *dims, size_t ndim, const LNTypeDescr);
 Ndarray *LNArray_Empty(const size_t *dims, size_t ndim, const LNTypeDescr *dtype);
+
+Ndarray *LNArray_Zeros_(Ndarray *out, const size_t *dims, size_t ndim, const LNTypeDescr *dtype);
 Ndarray *LNArray_Zeros(const size_t *dims, size_t ndim, const LNTypeDescr *dtype);
+
+Ndarray *LNArray_Ones_(Ndarray *out, const size_t *dims, size_t ndim, const LNTypeDescr *dtype);
 Ndarray *LNArray_Ones(const size_t *dims, size_t ndim, const LNTypeDescr *dtype);
+
+Ndarray *LNArray_Range_(Ndarray *out, double start, double stop, double step, const LNTypeDescr *dtype);
 Ndarray *LNArray_Range(double start, double stop, double step, const LNTypeDescr *dtype);
 
 #endif

@@ -11,29 +11,52 @@ static void LNArray_RecursiveToString(LNBuffer *b, Ndarray *arr, size_t indent_l
     if(!aux)
         return;
     LNBuff_addchar(b, '{');
+    if(LNError_Ocurred()){
+        return;
+    }
+
     size_t i, j;
     for(i = 0; i < LNArray_LEN(arr); i++){
         LNArray_Index_(aux, arr, i);
+        if(LNError_Ocurred()){
+            return;
+        }
         if(LNArray_IsScalar(aux)){
             LNBuff_addtype(b, aux->data, aux->dtype);
-            if(i < LNArray_LEN(arr)-1)
+            if(LNError_Ocurred()){
+                return;
+            }
+            if(i < LNArray_LEN(arr)-1){
                 LNBuff_addchar(b, '\t');
+                if(LNError_Ocurred()){
+                    return;
+                }
+            }
         } else{
             if(i > 0){
                 for(j = 0; j < indent_level; j++){
                     LNBuff_addchar(b, ' ');
+                    if(LNError_Ocurred()){
+                        return;
+                    }
                 }
             }
             LNArray_RecursiveToString(b, aux, indent_level+1);
             if(i < LNArray_LEN(arr)-1){
                 for(j = 0; j < LNArray_NDIM(aux); j++){
                     LNBuff_addchar(b, '\n');
+                    if(LNError_Ocurred()){
+                        return;
+                    }
                 }
             }
         }
     }
-    // free(aux);
+    free(aux);
     LNBuff_addchar(b, '}');
+    if(LNError_Ocurred()){
+        return;
+    }
 }
 
 char *LNArray_toString_(LNBuffer *b, Ndarray *arr, const char *prefix, const char *sufix){

@@ -106,11 +106,11 @@ double *LNFloat64Vector_Fill_SSE(double *z, double fill_value, size_t n){
     __m128d v = _mm_set1_pd(fill_value);
 
     size_t i;
-    for(i = 0; i < ((n)-(n%4)); i+=4){
+    for(i = 0; i < ((n)-(n%2)); i+=2){
         _mm_storeu_pd(z + i, v);
     }
 
-    for(; i < n; i++){
+    for(i=0; i < n; i++){
         z[i] = fill_value;
     }
 
