@@ -1,0 +1,2 @@
+#! /bin/luajit
+dofile("install.lua")
