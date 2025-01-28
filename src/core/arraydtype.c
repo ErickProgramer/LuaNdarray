@@ -172,6 +172,8 @@ static const LNTypeDescr *LNComplex128;
 static const LNTypeDescr *LNChar;
 static const LNTypeDescr *LNBool;
 
+static const LNTypeDescr *LNDefault;
+
 void LNDType_Init(){
     LNInt8 = LNDType_NewFromID(LN_INT8);
     LNInt16 = LNDType_NewFromID(LN_INT16);
@@ -191,6 +193,17 @@ void LNDType_Init(){
 
     LNChar = LNDType_NewFromID(LN_CHAR);
     LNBool = LNDType_NewFromID(LN_BOOL);
+
+    LNDefault = LNFloat64;
+}
+
+const LNTypeDescr *LNDType_setdefault(const LNTypeDescr *type){
+    LNDefault = type;
+    return LNDefault;
+}
+
+const LNTypeDescr *LNDType_getdefault(){
+    return LNDefault;
 }
 
 #define LN_NEW_DTYPE_CREATOR(id, real, Real, repr)\
@@ -289,7 +302,7 @@ LNTypeDescr *LNDType_NewFromID(LNDTypes id){
 }
 
 const LNTypeDescr *LNDType_GetFromID(LNDTypes id){
-    switch (id){
+    switch(id){
         case LN_INT8:
             return LNInt8;
         case LN_INT16:
@@ -317,10 +330,9 @@ const LNTypeDescr *LNDType_GetFromID(LNDTypes id){
         case LN_CHAR:
             return LNChar;
         case LN_BOOL:
-            return LNBool;
-        
+            return LNBool; 
         default:
-            LNError_setFString("type %d do not exist", id);
+            LNError_setFString("type %d does not exist", id);
             return NULL;
     }
 }
